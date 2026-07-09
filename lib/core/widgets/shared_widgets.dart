@@ -1046,38 +1046,42 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
               size: 80mm auto;
               margin: 0;
             }
-            html, body {
-              width: 280px;
-              max-width: 280px;
-              overflow-x: hidden;
+            html {
+              width: 80mm;
+              margin: 0;
+              padding: 0;
             }
             body {
               font-family: 'Times New Roman', Times, serif;
+              width: 72mm;
               margin: 0 auto;
-              padding: 4mm 4mm;
-              font-size: 13px;
+              padding: 3mm 0;
+              font-size: 8.5pt;
               line-height: 1.4;
               color: #000;
             }
             @media print {
-              html, body {
-                width: 280px;
-                max-width: 280px;
-                overflow-x: hidden;
+              html {
+                width: 80mm;
+              }
+              body {
+                width: 72mm;
+                margin: 0 auto;
+                padding: 3mm 0;
               }
             }
             .center { text-align: center; }
             .bold { font-weight: bold; }
             .divider {
               border-top: 1px solid #000;
-              margin: 6px 0;
+              margin: 1.5mm 0;
               width: 100%;
             }
             .header-logo {
-              width: 100px;
+              width: 22mm;
               height: auto;
               display: block;
-              margin: 0 auto 8px auto;
+              margin: 0 auto 2mm auto;
             }
             table {
               width: 100%;
@@ -1230,38 +1234,42 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
               size: 80mm auto;
               margin: 0;
             }
-            html, body {
-              width: 280px;
-              max-width: 280px;
-              overflow-x: hidden;
+            html {
+              width: 80mm;
+              margin: 0;
+              padding: 0;
             }
             body {
               font-family: 'Times New Roman', Times, serif;
+              width: 72mm;
               margin: 0 auto;
-              padding: 4mm 4mm;
-              font-size: 13px;
+              padding: 3mm 0;
+              font-size: 8.5pt;
               line-height: 1.4;
               color: #000;
             }
             @media print {
-              html, body {
-                width: 280px;
-                max-width: 280px;
-                overflow-x: hidden;
+              html {
+                width: 80mm;
+              }
+              body {
+                width: 72mm;
+                margin: 0 auto;
+                padding: 3mm 0;
               }
             }
             .center { text-align: center; }
             .bold { font-weight: bold; }
             .divider {
               border-top: 1px solid #000;
-              margin: 6px 0;
+              margin: 1.5mm 0;
               width: 100%;
             }
             .header-logo {
-              width: 100px;
+              width: 22mm;
               height: auto;
               display: block;
-              margin: 0 auto 8px auto;
+              margin: 0 auto 2mm auto;
             }
             table {
               width: 100%;
