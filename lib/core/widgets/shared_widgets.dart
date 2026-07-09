@@ -1006,7 +1006,6 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
 
     final cashChangeHtml = order.isPaid
         ? '''
-          <div class="divider"></div>
           <table style="width: 100%; font-size: 9pt;">
             <tr>
               <td style="padding: 2px 0;">Cash</td>
@@ -1163,7 +1162,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
           <div class="divider"></div>
           
           <div class="center bold" style="font-size: 7.5pt; margin-top: 2px;">POS System Developed By</div>
-          <div class="center" style="font-size: 7.5pt; font-weight: bold;">Voryent Solution  0329 7600120</div>
+          <div class="center" style="font-size: 7.5pt; font-weight: bold;">Voryent Solutions  0329 7600120</div>
           
           <script>
             setTimeout(function() {
