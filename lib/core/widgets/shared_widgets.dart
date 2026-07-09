@@ -1086,9 +1086,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
            <div class="center bold" style="font-size: 9pt; margin: 4px 0; padding: 2px 0; border: 1px solid #000; text-transform: uppercase;">
              $orderStatus
            </div>
-           
-           <div class="divider"></div>
-           
+                      
            <div style="display: flex; justify-content: space-between; font-size: 9pt;">
              <span>Token-ID# $orderTokenId</span>
              <span>Order-ID: $orderId</span>
