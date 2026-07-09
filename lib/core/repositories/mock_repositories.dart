@@ -169,6 +169,7 @@ class MockDatabase {
   ];
 
   static final List<OrderModel> orders = [];
+  static final List<DailyClosingModel> dailyClosings = [];
   static final List<ActivityLogModel> activityLogs = [];
 
   static final List<WaiterModel> waiters = [
@@ -187,6 +188,7 @@ class MockDatabase {
     deliveryCharges: 50.0,
     taxRate: 5.0,
     updatedAt: DateTime.now(),
+    cashierReportPassword: "",
   );
 
   static int orderIdCounter = 42; // Starts from 42 as per receipt spec example
@@ -221,6 +223,18 @@ void _triggerDiscountsUpdate() => _discountsStreamController.add(List.from(MockD
 void _triggerOrdersUpdate() => _ordersStreamController.add(List.from(MockDatabase.orders));
 void _triggerActivityLogsUpdate() => _activityLogsStreamController.add(List.from(MockDatabase.activityLogs));
 void _triggerSettingsUpdate() => _settingsStreamController.add(MockDatabase.restaurantSettings);
+
+final _dailyClosingStreamControllers = <String, StreamController<DailyClosingModel?>>{};
+
+StreamController<DailyClosingModel?> _getClosingController(String date) {
+  return _dailyClosingStreamControllers.putIfAbsent(date, () => StreamController<DailyClosingModel?>.broadcast());
+}
+
+void _triggerClosingUpdate(String date) {
+  final idx = MockDatabase.dailyClosings.indexWhere((c) => c.id == date);
+  final closing = idx != -1 ? MockDatabase.dailyClosings[idx] : null;
+  _getClosingController(date).add(closing);
+}
 
 // --- Implementation Classes ---
 
@@ -724,7 +738,7 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<void> updateOrderPaymentStatus(String docId, bool isPaid, String userId) async {
+  Future<void> updateOrderPaymentStatus(String docId, bool isPaid, String userId, {double? amountReceived, double? change}) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final index = MockDatabase.orders.indexWhere((o) => o.id == docId);
     if (index != -1) {
@@ -752,6 +766,8 @@ class MockOrderRepository implements OrderRepository {
         isPaid: isPaid,
         status: newStatus,
         statusHistory: history,
+        amountReceived: amountReceived ?? order.amountReceived,
+        change: change ?? order.change,
         updatedAt: DateTime.now(),
       );
       _triggerOrdersUpdate();
@@ -812,6 +828,34 @@ class MockOrderRepository implements OrderRepository {
         updatedAt: DateTime.now(),
       );
       _triggerOrdersUpdate();
+    }
+  }
+
+  @override
+  Stream<DailyClosingModel?> watchDailyClosing(String date) {
+    Timer.run(() => _triggerClosingUpdate(date));
+    return _getClosingController(date).stream;
+  }
+
+  @override
+  Future<void> saveDailyClosing(DailyClosingModel closing) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final idx = MockDatabase.dailyClosings.indexWhere((c) => c.id == closing.id);
+    if (idx != -1) {
+      MockDatabase.dailyClosings[idx] = closing;
+    } else {
+      MockDatabase.dailyClosings.add(closing);
+    }
+    _triggerClosingUpdate(closing.id);
+  }
+
+  @override
+  Future<void> releaseDailyClosing(String date) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final idx = MockDatabase.dailyClosings.indexWhere((c) => c.id == date);
+    if (idx != -1) {
+      MockDatabase.dailyClosings[idx] = MockDatabase.dailyClosings[idx].copyWith(isReleased: true);
+      _triggerClosingUpdate(date);
     }
   }
 }

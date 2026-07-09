@@ -1640,8 +1640,22 @@ class ReceiptView extends ConsumerWidget {
 }
 
 // --- ORDER TRACKING VIEW ---
-class OrderTrackingView extends ConsumerWidget {
+class OrderTrackingView extends ConsumerStatefulWidget {
   const OrderTrackingView({super.key});
+
+  @override
+  ConsumerState<OrderTrackingView> createState() => _OrderTrackingViewState();
+}
+
+class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
+  String _searchQuery = "";
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _showError(BuildContext context, String err) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1649,7 +1663,7 @@ class OrderTrackingView extends ConsumerWidget {
     );
   }
 
-  void _onCancelOrder(BuildContext context, WidgetRef ref, OrderModel order, String userId) {
+  void _onCancelOrder(BuildContext context, OrderModel order, String userId) {
     final reasonController = TextEditingController();
     showDialog(
       context: context,
@@ -1677,7 +1691,7 @@ class OrderTrackingView extends ConsumerWidget {
     });
   }
 
-  void _onCompleteOrder(BuildContext context, WidgetRef ref, OrderModel order, String userId) {
+  void _onCompleteOrder(BuildContext context, OrderModel order, String userId) {
     final proceedHandover = () async {
       String? assignedRider;
       if (order.orderType.toLowerCase() == "delivery") {
@@ -1701,23 +1715,28 @@ class OrderTrackingView extends ConsumerWidget {
         }
       } else {
         if (!context.mounted) return;
-        final result = await showDialog<String>(
+        final result = await showDialog<Map<String, dynamic>>(
           context: context,
           builder: (context) => HandoverPaymentDialog(order: order),
         );
         if (result != null) {
-          final status = result == "paid" ? "Completed" : "Handover";
-          if (result == "paid") {
-            await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(order.id, true, userId);
-          }
+          final isPaid = result['status'] == "paid";
+          final status = isPaid ? "Completed" : "Handover";
+          await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(
+            order.id,
+            isPaid,
+            userId,
+            amountReceived: result['cashReceived'],
+            change: result['change'],
+          );
           await ref.read(orderRepositoryProvider).updateOrderStatus(order.id, status, userId, "cashier");
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(result == "paid"
+                content: Text(isPaid
                     ? "Order completed and marked as PAID successfully!"
                     : "Order marked as UNPAID HANDOVER successfully!"),
-                backgroundColor: result == "paid" ? Colors.green : Colors.orange,
+                backgroundColor: isPaid ? Colors.green : Colors.orange,
               ),
             );
           }
@@ -1733,7 +1752,7 @@ class OrderTrackingView extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final ordersState = ref.watch(cashierOrdersStreamProvider);
     final user = ref.watch(authStateProvider).value;
 
@@ -1746,19 +1765,51 @@ class OrderTrackingView extends ConsumerWidget {
         data: (orders) {
           // Display only today's active orders
           final activeOrders = orders.where((o) => o.status != "Completed" && o.status != "Cancelled").toList();
+          final filteredOrders = _searchQuery.isEmpty
+              ? activeOrders
+              : activeOrders.where((o) => (o.tokenId ?? '').toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
           return Padding(
             padding: const EdgeInsets.all(24.0),
-            child: activeOrders.isEmpty
-                ? const EmptyStateWidget(
-                    title: "Active queue is clear!",
-                    message: "All orders placed are fully processed or prepared.",
-                    icon: Icons.list_alt,
-                  )
-                : ListView.builder(
-                    itemCount: activeOrders.length,
-                    itemBuilder: (context, idx) {
-                      final ord = activeOrders[idx];
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Search active orders by Token ID...",
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = "";
+                              });
+                            },
+                          )
+                        : null,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val.trim();
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: filteredOrders.isEmpty
+                      ? const EmptyStateWidget(
+                          title: "No matching orders found",
+                          message: "Try searching by another Token ID.",
+                          icon: Icons.search_off,
+                        )
+                      : ListView.builder(
+                          itemCount: filteredOrders.length,
+                          itemBuilder: (context, idx) {
+                            final ord = filteredOrders[idx];
                       final isPending = ord.status == "Pending";
                       final isReady = ord.status == "Ready";
                       final isHandover = ord.status == "Handover";
@@ -1811,7 +1862,7 @@ class OrderTrackingView extends ConsumerWidget {
                                     const SizedBox(width: 8),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                      onPressed: () => _onCancelOrder(context, ref, ord, user?.uid ?? ''),
+                                      onPressed: () => _onCancelOrder(context, ord, user?.uid ?? ''),
                                       child: const Text("Cancel Order"),
                                     ),
                                   ],
@@ -1820,13 +1871,25 @@ class OrderTrackingView extends ConsumerWidget {
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                                       onPressed: () async {
-                                        try {
-                                          await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(ord.id, true, user?.uid ?? '');
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text("Order marked as PAID!"), backgroundColor: Colors.green),
-                                          );
-                                        } catch (e) {
-                                          _showError(context, e.toString());
+                                        final result = await showDialog<Map<String, dynamic>>(
+                                          context: context,
+                                          builder: (context) => PayBillDialog(order: ord),
+                                        );
+                                        if (result != null) {
+                                          try {
+                                            await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(
+                                              ord.id,
+                                              true,
+                                              user?.uid ?? '',
+                                              amountReceived: result['cashReceived'],
+                                              change: result['change'],
+                                            );
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text("Order marked as PAID!"), backgroundColor: Colors.green),
+                                            );
+                                          } catch (e) {
+                                            _showError(context, e.toString());
+                                          }
                                         }
                                       },
                                       icon: const Icon(Icons.payment, size: 16),
@@ -1854,7 +1917,7 @@ class OrderTrackingView extends ConsumerWidget {
                                     const SizedBox(width: 8),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                                      onPressed: () => _onCompleteOrder(context, ref, ord, user?.uid ?? ''),
+                                    onPressed: () => _onCompleteOrder(context, ord, user?.uid ?? ''),
                                       child: const Text("Hand Over Food"),
                                     ),
                                   ],
@@ -1886,6 +1949,9 @@ class OrderTrackingView extends ConsumerWidget {
                       );
                     },
                   ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -1921,10 +1987,15 @@ class _OrderSearchViewState extends ConsumerState<OrderSearchView> {
             final query = _searchQuery.trim().toLowerCase();
             bool matchesQuery = true;
             if (query.isNotEmpty) {
-              if (query.length == 6 && double.tryParse(query) != null) {
-                matchesQuery = o.orderId == query; // exact 6 digits
+              final cleanQuery = query.replaceAll(RegExp(r'^0+'), '');
+              final cleanOrderId = o.orderId.replaceAll(RegExp(r'^0+'), '');
+              final cleanTokenId = (o.tokenId ?? '').replaceAll(RegExp(r'^0+'), '');
+              if (cleanQuery.isNotEmpty && int.tryParse(cleanQuery) != null) {
+                matchesQuery = (cleanOrderId == cleanQuery || cleanTokenId == cleanQuery);
               } else {
-                matchesQuery = o.customerName.toLowerCase().contains(query);
+                matchesQuery = o.customerName.toLowerCase().contains(query) ||
+                    o.orderId.contains(query) ||
+                    (o.tokenId ?? '').contains(query);
               }
             }
 
@@ -2106,16 +2177,98 @@ class CashierReportsView extends ConsumerStatefulWidget {
 
 class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
   DateTime _filterDate = DateTime.now();
+  bool _isUnlocked = false;
+  final _passController = TextEditingController();
+
+  @override
+  void dispose() {
+    _passController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settingsAsync = ref.watch(settingsStreamProvider);
     final ordersState = ref.watch(cashierOrdersStreamProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("My Sales Analytics")),
-      bottomNavigationBar: _buildBottomNav(context, 4),
-      body: ordersState.when(
-        loading: () => const LoadingWidget(message: "Compiling shift sales logs..."),
+    return settingsAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text("Error: $e"))),
+      data: (settings) {
+        final hasPassword = settings.cashierReportPassword.isNotEmpty;
+        if (hasPassword && !_isUnlocked) {
+          return Scaffold(
+            appBar: AppBar(title: const Text("Access Locked")),
+            bottomNavigationBar: _buildBottomNav(context, 4),
+            body: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Icon(Icons.lock, size: 64, color: AppTheme.primaryColor),
+                          const SizedBox(height: 16),
+                          const Text(
+                            "Enter Report Password",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "This area is password protected. Enter the password set by your manager to view sales reports.",
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          TextField(
+                            controller: _passController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: "Password",
+                              prefixIcon: Icon(Icons.password),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          CustomButton(
+                            text: "UNLOCK REPORTS",
+                            onPressed: () {
+                              if (_passController.text.trim() == settings.cashierReportPassword) {
+                                setState(() {
+                                  _isUnlocked = true;
+                                });
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Incorrect password!"),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: const Text("My Sales Analytics")),
+          bottomNavigationBar: _buildBottomNav(context, 4),
+          body: ordersState.when(
+            loading: () => const LoadingWidget(message: "Compiling shift sales logs..."),
         error: (err, _) => CustomErrorWidget(message: err.toString()),
         data: (orders) {
           // Filter to select date only
@@ -2162,6 +2315,99 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                       },
                     )
                   ],
+                ),
+                const SizedBox(height: 16),
+                StreamBuilder<DailyClosingModel?>(
+                  stream: ref.read(orderRepositoryProvider).watchDailyClosing(DateFormat('yyyy-MM-dd').format(_filterDate)),
+                  builder: (context, snapshot) {
+                    final closing = snapshot.data;
+                    final user = ref.read(authStateProvider).value;
+
+                    // Compute current aggregates
+                    final dayOrders = orders.where((o) => _isSameDay(o.createdAt, _filterDate)).toList();
+                    final nonCancelled = dayOrders.where((o) => o.status != "Cancelled").toList();
+                    final cancelled = dayOrders.where((o) => o.status == "Cancelled").toList();
+
+                    final isClosed = closing != null && !closing.isReleased;
+
+                    return Card(
+                      color: isClosed ? Colors.green.shade50 : Colors.blue.shade50,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              isClosed ? "Daily Closing Submitted" : "Daily Closing Pending",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isClosed ? Colors.green.shade900 : Colors.blue.shade900,
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isClosed ? Colors.green : AppTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                              ),
+                              icon: Icon(isClosed ? Icons.visibility : Icons.check_circle),
+                              label: Text(isClosed ? "VIEW CLOSING" : "ADD DAILY CLOSING"),
+                              onPressed: () async {
+                                if (isClosed) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => ViewDailyClosingDialog(
+                                      closing: closing,
+                                      onPrint: () => triggerClosingPrint(context, closing),
+                                    ),
+                                  );
+                                } else {
+                                  final result = await showDialog<Map<String, double>>(
+                                    context: context,
+                                    builder: (context) => AddDailyClosingDialog(
+                                      totalPunchOrders: nonCancelled.length,
+                                      cancelledOrders: cancelled.length,
+                                    ),
+                                  );
+                                  if (result != null) {
+                                    final dateStr = DateFormat('yyyy-MM-dd').format(_filterDate);
+                                    final newClosing = DailyClosingModel(
+                                      id: dateStr,
+                                      cashAmount: result['cash']!,
+                                      onlineAmount: result['online']!,
+                                      cardAmount: result['card']!,
+                                      totalPunchOrders: nonCancelled.length,
+                                      cancelledOrders: cancelled.length,
+                                      totalConfirmedOrders: completed.length,
+                                      totalTodayRevenue: revenue,
+                                      closedBy: user?.uid ?? '',
+                                      closedByName: user?.name ?? 'Cashier',
+                                      createdAt: DateTime.now(),
+                                      isReleased: false,
+                                    );
+                                    try {
+                                      await ref.read(orderRepositoryProvider).saveDailyClosing(newClosing);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text("Daily closing saved successfully!"), backgroundColor: Colors.green),
+                                        );
+                                        triggerClosingPrint(context, newClosing);
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Failed to save closing: $e"), backgroundColor: Colors.red),
+                                        );
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
 
@@ -2280,6 +2526,8 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
         },
       ),
     );
+      },
+    );
   }
 }
 
@@ -2293,20 +2541,147 @@ bool _isSameDay(DateTime a, DateTime b) {
   return logicalDate == sel;
 }
 
-class HandoverPaymentDialog extends StatelessWidget {
+class HandoverPaymentDialog extends StatefulWidget {
   final OrderModel order;
 
   const HandoverPaymentDialog({super.key, required this.order});
+
+  @override
+  State<HandoverPaymentDialog> createState() => _HandoverPaymentDialogState();
+}
+
+class _HandoverPaymentDialogState extends State<HandoverPaymentDialog> {
+  String _paymentMode = "unpaid"; // unpaid or paid
+  final _cashController = TextEditingController();
+  double _cashReceived = 0.0;
+  double _change = 0.0;
+  String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _cashController.addListener(_calculateChange);
+  }
+
+  @override
+  void dispose() {
+    _cashController.removeListener(_calculateChange);
+    _cashController.dispose();
+    super.dispose();
+  }
+
+  void _calculateChange() {
+    final val = _cashController.text.trim();
+    if (val.isEmpty) {
+      setState(() {
+        _cashReceived = 0.0;
+        _change = 0.0;
+        _errorMsg = null;
+      });
+      return;
+    }
+    final entered = double.tryParse(val);
+    if (entered == null) {
+      setState(() {
+        _errorMsg = "Please enter a valid number";
+      });
+      return;
+    }
+    final change = entered - widget.order.grandTotal;
+    setState(() {
+      _cashReceived = entered;
+      _change = change >= 0 ? change : 0.0;
+      _errorMsg = change < 0 ? "Insufficient cash (Required: Rs. ${widget.order.grandTotal.toStringAsFixed(0)})" : null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: const Text("Confirm Handover Payment", style: TextStyle(fontWeight: FontWeight.bold)),
-      content: const Text(
-        "Please specify the payment status for this order handover. "
-        "Clicking 'UNPAID' hands over the order but flags it as Unpaid (Handover status).",
-        style: TextStyle(fontSize: 14),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              "Please specify the payment status for this order handover.",
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text("UNPAID HANDOVER"),
+                    selected: _paymentMode == "unpaid",
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() {
+                          _paymentMode = "unpaid";
+                          _errorMsg = null;
+                        });
+                      }
+                    },
+                    selectedColor: Colors.orange.withOpacity(0.2),
+                    checkmarkColor: Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text("PAID (COLLECT CASH)"),
+                    selected: _paymentMode == "paid",
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() {
+                          _paymentMode = "paid";
+                          _calculateChange();
+                        });
+                      }
+                    },
+                    selectedColor: Colors.green.withOpacity(0.2),
+                    checkmarkColor: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            if (_paymentMode == "paid") ...[
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Grand Total:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("Rs. ${widget.order.grandTotal.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _cashController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: "Cash Received (Rs.)",
+                  prefixIcon: Icon(Icons.payments),
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Change to Return:"),
+                  Text("Rs. ${_change.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                ],
+              ),
+              if (_errorMsg != null) ...[
+                const SizedBox(height: 10),
+                Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ],
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -2314,14 +2689,145 @@ class HandoverPaymentDialog extends StatelessWidget {
           child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-          onPressed: () => Navigator.pop(context, "unpaid"),
-          child: const Text("UNPAID HANDOVER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _paymentMode == "unpaid"
+                ? Colors.orange
+                : (_errorMsg == null && _cashReceived >= widget.order.grandTotal ? Colors.green : Colors.grey.shade400),
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _paymentMode == "unpaid" || (_errorMsg == null && _cashReceived >= widget.order.grandTotal)
+              ? () {
+                  Navigator.pop(context, {
+                    'status': _paymentMode, // unpaid or paid
+                    'cashReceived': _paymentMode == "paid" ? _cashReceived : widget.order.grandTotal,
+                    'change': _paymentMode == "paid" ? _change : 0.0,
+                  });
+                }
+              : null,
+          child: Text(
+            _paymentMode == "unpaid" ? "CONFIRM UNPAID" : "CONFIRM PAID & COMPLETE",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class PayBillDialog extends StatefulWidget {
+  final OrderModel order;
+
+  const PayBillDialog({super.key, required this.order});
+
+  @override
+  State<PayBillDialog> createState() => _PayBillDialogState();
+}
+
+class _PayBillDialogState extends State<PayBillDialog> {
+  final _cashController = TextEditingController();
+  double _cashReceived = 0.0;
+  double _change = 0.0;
+  String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _cashController.addListener(_calculateChange);
+  }
+
+  @override
+  void dispose() {
+    _cashController.removeListener(_calculateChange);
+    _cashController.dispose();
+    super.dispose();
+  }
+
+  void _calculateChange() {
+    final val = _cashController.text.trim();
+    if (val.isEmpty) {
+      setState(() {
+        _cashReceived = 0.0;
+        _change = 0.0;
+        _errorMsg = null;
+      });
+      return;
+    }
+    final entered = double.tryParse(val);
+    if (entered == null) {
+      setState(() {
+        _errorMsg = "Please enter a valid number";
+      });
+      return;
+    }
+    final change = entered - widget.order.grandTotal;
+    setState(() {
+      _cashReceived = entered;
+      _change = change >= 0 ? change : 0.0;
+      _errorMsg = change < 0 ? "Insufficient cash (Required: Rs. ${widget.order.grandTotal.toStringAsFixed(0)})" : null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Text("Pay Bill - Order #${widget.order.orderId}", style: const TextStyle(fontWeight: FontWeight.bold)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Grand Total:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text("Rs. ${widget.order.grandTotal.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryColor)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _cashController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: "Cash Received (Rs.)",
+              prefixIcon: Icon(Icons.payments),
+              border: OutlineInputBorder(),
+              hintText: "e.g., 500",
+            ),
+            autofocus: true,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Change to Return:", style: TextStyle(fontSize: 14)),
+              Text("Rs. ${_change.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green)),
+            ],
+          ),
+          if (_errorMsg != null) ...[
+            const SizedBox(height: 12),
+            Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-          onPressed: () => Navigator.pop(context, "paid"),
-          child: const Text("COLLECT Rs. & COMPLETE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _errorMsg == null && _cashReceived >= widget.order.grandTotal ? Colors.green : Colors.grey.shade400,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _errorMsg == null && _cashReceived >= widget.order.grandTotal
+              ? () {
+                  Navigator.pop(context, {
+                    'cashReceived': _cashReceived,
+                    'change': _change,
+                  });
+                }
+              : null,
+          child: const Text("CONFIRM PAYMENT", style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -2376,6 +2882,197 @@ class SelectRiderDialog extends ConsumerWidget {
         TextButton(
           onPressed: () => Navigator.pop(context, null),
           child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+        ),
+      ],
+    );
+  }
+}
+
+class AddDailyClosingDialog extends StatefulWidget {
+  final int totalPunchOrders;
+  final int cancelledOrders;
+
+  const AddDailyClosingDialog({
+    super.key,
+    required this.totalPunchOrders,
+    required this.cancelledOrders,
+  });
+
+  @override
+  State<AddDailyClosingDialog> createState() => _AddDailyClosingDialogState();
+}
+
+class _AddDailyClosingDialogState extends State<AddDailyClosingDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _cashController = TextEditingController();
+  final _onlineController = TextEditingController();
+  final _cardController = TextEditingController();
+
+  @override
+  void dispose() {
+    _cashController.dispose();
+    _onlineController.dispose();
+    _cardController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text("Perform Daily Closing", style: TextStyle(fontWeight: FontWeight.bold)),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextField(
+                label: "Cash Amount (Rs.)",
+                placeholder: "e.g., 45000",
+                controller: _cashController,
+                prefixIcon: Icons.money,
+                keyboardType: TextInputType.number,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return "Cash amount is required";
+                  if (double.tryParse(val) == null || double.parse(val) < 0) return "Enter a valid amount";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: "Online Banking Payment (Rs.)",
+                placeholder: "e.g., 2000",
+                controller: _onlineController,
+                prefixIcon: Icons.account_balance,
+                keyboardType: TextInputType.number,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return "Online amount is required";
+                  if (double.tryParse(val) == null || double.parse(val) < 0) return "Enter a valid amount";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: "Card Payment (Rs.)",
+                placeholder: "e.g., 2500",
+                controller: _cardController,
+                prefixIcon: Icons.credit_card,
+                keyboardType: TextInputType.number,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return "Card amount is required";
+                  if (double.tryParse(val) == null || double.parse(val) < 0) return "Enter a valid amount";
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+          onPressed: () {
+            if (_formKey.currentState?.validate() ?? false) {
+              Navigator.pop(context, {
+                'cash': double.parse(_cashController.text.trim()),
+                'online': double.parse(_onlineController.text.trim()),
+                'card': double.parse(_cardController.text.trim()),
+              });
+            }
+          },
+          child: const Text("CONFIRM CLOSING", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
+class ViewDailyClosingDialog extends StatelessWidget {
+  final DailyClosingModel closing;
+  final VoidCallback onPrint;
+
+  const ViewDailyClosingDialog({
+    super.key,
+    required this.closing,
+    required this.onPrint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double totalReceived = closing.cashAmount + closing.onlineAmount + closing.cardAmount;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text("Daily Closing Details", style: TextStyle(fontWeight: FontWeight.bold)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ListTile(
+              title: const Text("Logical Date"),
+              trailing: Text(closing.id, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              title: const Text("Closed By"),
+              trailing: Text(closing.closedByName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            const Divider(),
+            ListTile(
+              title: const Text("Total Punch Orders"),
+              trailing: Text("${closing.totalPunchOrders}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              title: const Text("Total Confirmed Orders"),
+              trailing: Text("${closing.totalConfirmedOrders}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              title: const Text("Cancelled Orders"),
+              trailing: Text("${closing.cancelledOrders}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              title: const Text("Total Today Revenue"),
+              trailing: Text("Rs. ${closing.totalTodayRevenue.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            const Divider(),
+            ListTile(
+              title: const Text("Total Cash"),
+              trailing: Text("Rs. ${closing.cashAmount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            ),
+            ListTile(
+              title: const Text("Online Payment"),
+              trailing: Text("Rs. ${closing.onlineAmount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              title: const Text("Card Payment"),
+              trailing: Text("Rs. ${closing.cardAmount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            const Divider(),
+            ListTile(
+              title: const Text("Total Received Amount"),
+              trailing: Text("Rs. ${totalReceived.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("CLOSE", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+          icon: const Icon(Icons.print, color: Colors.white),
+          label: const Text("PRINT RECEIPT", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          onPressed: () {
+            Navigator.pop(context);
+            onPrint();
+          },
         ),
       ],
     );

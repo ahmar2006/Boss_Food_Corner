@@ -80,11 +80,14 @@ abstract class OrderRepository {
   Future<OrderModel?> getOrderByHumanId(String orderId);
   Future<String> placeOrder(OrderModel order);
   Future<void> updateOrderStatus(String docId, String status, String userId, String role);
-  Future<void> updateOrderPaymentStatus(String docId, bool isPaid, String userId);
+  Future<void> updateOrderPaymentStatus(String docId, bool isPaid, String userId, {double? amountReceived, double? change});
   Future<void> cancelOrder(String docId, String reason, String userId);
   Future<void> undoStatusChange(String docId, List<Map<String, dynamic>> previousHistory, String previousStatus);
   Future<void> updateOrderDetails(OrderModel order);
   Future<void> updateOrderRider(String docId, String riderName);
+  Stream<DailyClosingModel?> watchDailyClosing(String date);
+  Future<void> saveDailyClosing(DailyClosingModel closing);
+  Future<void> releaseDailyClosing(String date);
 }
 
 // 8. Settings Repository Interface

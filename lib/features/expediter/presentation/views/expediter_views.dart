@@ -221,7 +221,7 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
   void initState() {
     super.initState();
     final initialTab = ref.read(expediterQueueTabIndexProvider);
-    _tabController = TabController(length: 4, vsync: this, initialIndex: initialTab);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: initialTab.clamp(0, 2));
     _tabController.addListener(() {
       ref.read(expediterQueueTabIndexProvider.notifier).set(_tabController.index);
     });
@@ -247,8 +247,7 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
           unselectedLabelColor: Colors.white70,
           indicatorColor: AppTheme.secondaryColor,
           tabs: const [
-            Tab(text: "Pending"),
-            Tab(text: "In Preparation"),
+            Tab(text: "Pending Queue"),
             Tab(text: "Ready"),
             Tab(text: "Completed (Today)"),
           ],
@@ -259,22 +258,188 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
         loading: () => const LoadingWidget(message: "Syncing queue orders..."),
         error: (err, _) => CustomErrorWidget(message: err.toString()),
         data: (activeOrders) {
-          final pending = activeOrders.where((o) => o.status == "Pending").toList();
-          final prep = activeOrders.where((o) => o.status == "In Preparation").toList();
+          final pendingAndPrep = activeOrders.where((o) => o.status == "Pending" || o.status == "In Preparation").toList();
+          pendingAndPrep.sort((a, b) => a.createdAt.compareTo(b.createdAt)); // FIFO
           final ready = activeOrders.where((o) => o.status == "Ready").toList();
           final completed = allOrders.where((o) => o.status == "Completed" && _isSameDay(o.createdAt, DateTime.now())).toList();
 
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildQueueList(pending, "No pending orders in queue.", true),
-              _buildQueueList(prep, "No items in preparation line.", false),
+              _buildPendingGrid(pendingAndPrep),
               _buildQueueList(ready, "No orders ready for pickup.", false),
               _buildQueueList(completed, "No orders completed today.", false),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildPendingGrid(List<OrderModel> orders) {
+    if (orders.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(48.0),
+          child: Text("No pending orders in kitchen queue.", style: TextStyle(color: Colors.grey, fontSize: 15)),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 380,
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 20,
+        mainAxisExtent: 320,
+      ),
+      itemCount: orders.length,
+      itemBuilder: (context, idx) {
+        final ord = orders[idx];
+        final isPending = ord.status == "Pending";
+        
+        // Wait time color coding
+        Color cardColor = Colors.white;
+        final waitMinutes = DateTime.now().difference(ord.createdAt).inMinutes;
+        if (waitMinutes >= 15) {
+          cardColor = Colors.red.shade50;
+        } else if (waitMinutes >= 5) {
+          cardColor = Colors.yellow.shade50;
+        }
+
+        return Card(
+          color: cardColor,
+          elevation: 3,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isPending ? AppTheme.primaryColor.withOpacity(0.08) : Colors.green.withOpacity(0.08),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Token: ${ord.tokenId ?? '000'}",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryColor),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isPending ? Colors.orange : Colors.green,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        isPending ? "PENDING" : "PREPARING",
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Body (order details list)
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Order #${ord.orderId}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            _formatAgoTime(ord.createdAt),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: waitMinutes >= 15 ? Colors.red : Colors.grey,
+                              fontWeight: waitMinutes >= 5 ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text("Customer: ${ord.customerName} (${ord.orderType.toUpperCase()})", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const Divider(height: 16),
+                      // Items list
+                      ...ord.items.map((i) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("${i.quantity}x ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    i.name,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                  if (i.specialInstructions != null && i.specialInstructions!.trim().isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2.0),
+                                      child: Text(
+                                        "Note: ${i.specialInstructions}",
+                                        style: const TextStyle(fontSize: 11, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                      ...ord.deals.map((d) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("1x ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
+                            Expanded(
+                              child: Text(
+                                "Bundle: ${d['name']}",
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+              ),
+              // Footer Action Button
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: CustomButton(
+                  text: isPending ? "START PREPARATION" : "MARK READY",
+                  color: isPending ? AppTheme.primaryColor : Colors.green,
+                  onPressed: () async {
+                    try {
+                      if (isPending) {
+                        await ref.read(expediterActionProvider.notifier).updateStatus(ord.id, "In Preparation", "expediter");
+                      } else {
+                        await ref.read(expediterActionProvider.notifier).updateStatus(ord.id, "Ready", "expediter");
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.errorColor),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

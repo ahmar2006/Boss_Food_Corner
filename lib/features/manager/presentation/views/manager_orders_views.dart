@@ -598,32 +598,6 @@ class OrderDetailView extends ConsumerWidget {
                                 }
                               },
                             ),
-                          ] else ...[
-                            CustomButton(
-                              text: "MARK AS PAID",
-                              color: Colors.green,
-                              icon: Icons.payment,
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => const ConfirmationDialog(
-                                    title: "Mark Order as Paid?",
-                                    message: "This will lock cashier edits for this order.",
-                                    confirmLabel: "Mark Paid",
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  try {
-                                    await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(order!.id, true, currentUserId);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Order marked as PAID successfully! Cashier edits are now locked.")),
-                                    );
-                                  } catch (e) {
-                                    _showError(context, e.toString());
-                                  }
-                                }
-                              },
-                            ),
                           ],
                         ],
                       ),

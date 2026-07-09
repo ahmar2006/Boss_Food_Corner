@@ -798,7 +798,7 @@ class FirebaseOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<void> updateOrderPaymentStatus(String docId, bool isPaid, String userId) async {
+  Future<void> updateOrderPaymentStatus(String docId, bool isPaid, String userId, {double? amountReceived, double? change}) async {
     final docRef = _firestore.collection('orders').doc(docId);
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
@@ -811,6 +811,12 @@ class FirebaseOrderRepository implements OrderRepository {
         'isPaid': isPaid,
         'updatedAt': FieldValue.serverTimestamp(),
       };
+      if (amountReceived != null) {
+        updates['amountReceived'] = amountReceived;
+      }
+      if (change != null) {
+        updates['change'] = change;
+      }
       
       if (!isPaid && order.status == "Completed") {
         history.add({
@@ -909,6 +915,34 @@ class FirebaseOrderRepository implements OrderRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  @override
+  Stream<DailyClosingModel?> watchDailyClosing(String date) {
+    return _firestore
+        .collection('daily_closings')
+        .doc(date)
+        .snapshots()
+        .map((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) return null;
+      return DailyClosingModel.fromMap(snapshot.data()!, snapshot.id);
+    });
+  }
+
+  @override
+  Future<void> saveDailyClosing(DailyClosingModel closing) async {
+    await _firestore
+        .collection('daily_closings')
+        .doc(closing.id)
+        .set(closing.toMap());
+  }
+
+  @override
+  Future<void> releaseDailyClosing(String date) async {
+    await _firestore
+        .collection('daily_closings')
+        .doc(date)
+        .update({'isReleased': true});
+  }
 }
 
 class FirebaseSettingsRepository implements SettingsRepository {
@@ -925,6 +959,7 @@ class FirebaseSettingsRepository implements SettingsRepository {
         deliveryCharges: 50.0,
         taxRate: 5.0,
         updatedAt: DateTime.now(),
+        cashierReportPassword: '',
       );
     }
     return SettingsModel.fromMap(doc.data()!, doc.id);
@@ -940,6 +975,7 @@ class FirebaseSettingsRepository implements SettingsRepository {
           deliveryCharges: 50.0,
           taxRate: 5.0,
           updatedAt: DateTime.now(),
+          cashierReportPassword: '',
         );
       }
       return SettingsModel.fromMap(doc.data()!, doc.id);

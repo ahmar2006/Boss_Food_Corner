@@ -996,7 +996,39 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
       ..border = 'none';
       
     html.document.body?.append(iframe);
-    
+     final discountHtml = order.discountAmount > 0
+        ? '''<tr>
+               <td style="padding: 2px 0;">Discount</td>
+               <td style="text-align: right; padding: 2px 0;">-Rs. ${order.discountAmount.toStringAsFixed(2)}</td>
+             </tr>'''
+        : '';
+
+    final taxHtml = order.tax > 0
+        ? '''<tr>
+               <td style="padding: 2px 0;">Tax</td>
+               <td style="text-align: right; padding: 2px 0;">Rs. ${order.tax.toStringAsFixed(2)}</td>
+             </tr>'''
+        : '';
+
+    final double cashVal = order.isPaid ? (order.amountReceived > 0 ? order.amountReceived : order.grandTotal) : 0.0;
+    final double changeVal = order.isPaid ? order.change : 0.0;
+
+    final cashChangeHtml = order.isPaid
+        ? '''
+          <div class="divider"></div>
+          <table style="width: 100%; font-size: 11px;">
+            <tr>
+              <td style="padding: 2px 0;">Cash</td>
+              <td style="text-align: right; padding: 2px 0;">Rs. ${cashVal.toStringAsFixed(2)}</td>
+            </tr>
+            <tr style="font-weight: bold;">
+              <td style="padding: 2px 0;">Change</td>
+              <td style="text-align: right; padding: 2px 0;">Rs. ${changeVal.toStringAsFixed(2)}</td>
+            </tr>
+          </table>
+          '''
+        : '';
+
     // Set layout and thermal print styles using srcdoc
     iframe.srcdoc = '''
       <html>
@@ -1010,121 +1042,118 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
             @page {
               margin: 0;
             }
-            body {
-              font-family: 'Times New Roman', Times, serif;
-              width: 100%;
-              max-width: 100%;
-              margin: 0;
-              padding: 2mm 6mm;
-              font-size: 13px;
-              line-height: 1.3;
-              color: #000;
-            }
-            .center { text-align: center; }
-            .bold { font-weight: bold; }
-            .divider {
-              border-top: 1px solid #000;
-              margin: 6px 0;
-            }
-            .header-logo {
-              max-width: 130px;
-              max-height: 130px;
-              display: block;
-              margin: 0 auto 8px auto;
-            }
-          </style>
-        </head>
-        <body>
-          <img class="header-logo" src="$logoSrc" alt="Logo">
-          
-          <div class="center" style="font-size: 10px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
-          <div class="center" style="font-size: 10px;">0321-8086322 / 0318-6941313</div>
-          <div class="center bold" style="font-size: 12px; margin: 6px 0; padding: 2px 0; border: 1px solid #000; text-transform: uppercase;">
-            $orderStatus
-          </div>
-          
-          <div class="divider"></div>
-          
-          <div style="display: flex; justify-content: space-between;">
-            <span>Token-ID# $orderTokenId</span>
-            <span>Order-ID: $orderId</span>
-          </div>
-          
-          <div class="divider"></div>
-          
-          <div style="display: flex; justify-content: space-between;">
-            <span>Date: $orderDate</span>
-            <span>Time: $orderTime</span>
-          </div>
-          <div style="margin-top: 3px;">Cashier: $cashierName</div>
-          <div style="margin-top: 3px;">Order Taker: $orderTaker</div>
-          $riderHtml
-          
-          <div class="divider"></div>
-          
-          <div class="center bold" style="font-size: 12px; letter-spacing: 0.5px;">Customer Details</div>
-          
-          <div class="divider"></div>
-          
-          <div style="line-height: 1.4;">
-            <div>Type: $orderType</div>
-            <div>Customer: $customerName</div>
-            $tableNumberHtml
-            $phoneHtml
-            $addressHtml
-          </div>
-          
-          <div class="divider"></div>
-          
-          <div class="center bold" style="font-size: 12px; letter-spacing: 0.5px;">Order Details</div>
-          
-          <div class="divider"></div>
-          
-          <table style="width: 100%; border-collapse: collapse; line-height: 1.3;">
-            <thead>
-              <tr style="border-bottom: 1px solid #000; font-weight: bold;">
-                <th style="text-align: left; padding: 4px 0; width: 45%;">Item</th>
-                <th style="text-align: center; padding: 4px 0; width: 15%;">Qty</th>
-                <th style="text-align: right; padding: 4px 0; width: 20%;">Rate</th>
-                <th style="text-align: right; padding: 4px 0; width: 20%;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsBuf.toString()}
-            </tbody>
-          </table>
-          
-          <div class="divider"></div>
-          
-          <table style="width: 100%; font-size: 12px;">
-            <tr>
-              <td style="padding: 2px 0;">Sub Total</td>
-              <td style="text-align: right; padding: 2px 0;">Rs. ${order.subtotal.toStringAsFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 2px 0;">Discount</td>
-              <td style="text-align: right; padding: 2px 0;">-Rs. ${order.discountAmount.toStringAsFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 2px 0;">Tax</td>
-              <td style="text-align: right; padding: 2px 0;">Rs. ${order.tax.toStringAsFixed(2)}</td>
-            </tr>
-            $deliveryChargesHtml
-            <tr style="font-weight: bold; font-size: 14px; border-top: 1px solid #000; border-bottom: 1px solid #000;">
-              <td style="padding: 4px 0;">GRAND TOTAL</td>
-              <td style="text-align: right; padding: 4px 0;">Rs. ${order.grandTotal.toStringAsFixed(2)}</td>
-            </tr>
-          </table>
-          <div class="divider"></div>
-          <div class="center" style="font-size: 12px; margin-top: 8px; font-weight: bold;">Thank You!</div>
-          <div class="center" style="font-size: 12px; font-weight: bold;">Please Visit Again</div>
+             body {
+               font-family: 'Times New Roman', Times, serif;
+               width: 100%;
+               max-width: 100%;
+               margin: 0;
+               padding: 2mm 6mm;
+               font-size: 12px;
+               line-height: 1.3;
+               color: #000;
+             }
+             .center { text-align: center; }
+             .bold { font-weight: bold; }
+             .divider {
+               border-top: 1px solid #000;
+               margin: 6px 0;
+             }
+             .header-logo {
+               max-width: 150px;
+               max-height: 150px;
+               display: block;
+               margin: 0 auto 8px auto;
+             }
+           </style>
+         </head>
+         <body>
+           <img class="header-logo" src="$logoSrc" alt="Logo">
+           
+           <div class="center" style="font-size: 9px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
+           <div class="center" style="font-size: 9px;">0321-8086322 / 0318-6941313</div>
+           <div class="center bold" style="font-size: 11px; margin: 6px 0; padding: 2px 0; border: 1px solid #000; text-transform: uppercase;">
+             $orderStatus
+           </div>
+           
+           <div class="divider"></div>
+           
+           <div style="display: flex; justify-content: space-between; font-size: 11px;">
+             <span>Token-ID# $orderTokenId</span>
+             <span>Order-ID: $orderId</span>
+           </div>
+           
+           <div class="divider"></div>
+           
+           <div style="font-size: 11px;">
+             <div style="display: flex; justify-content: space-between;">
+               <span>Date: $orderDate</span>
+               <span>Time: $orderTime</span>
+             </div>
+             <div style="margin-top: 3px;">Cashier: $cashierName</div>
+             <div style="margin-top: 3px;">Order Taker: $orderTaker</div>
+             $riderHtml
+           </div>
+           
+           <div class="divider"></div>
+           
+           <div class="center bold" style="font-size: 11px; letter-spacing: 0.5px;">Customer Details</div>
+           
+           <div class="divider"></div>
+           
+           <div style="line-height: 1.4; font-size: 11px;">
+             <div>Type: $orderType</div>
+             <div>Customer: $customerName</div>
+             $tableNumberHtml
+             $phoneHtml
+             $addressHtml
+           </div>
+           
+           <div class="divider"></div>
+           
+           <div class="center bold" style="font-size: 11px; letter-spacing: 0.5px;">Order Details</div>
+           
+           <div class="divider"></div>
+           
+           <table style="width: 100%; border-collapse: collapse; line-height: 1.3;">
+             <thead>
+               <tr style="border-bottom: 1px solid #000; font-weight: bold;">
+                 <th style="text-align: left; padding: 4px 0; width: 45%;">Item</th>
+                 <th style="text-align: center; padding: 4px 0; width: 15%;">Qty</th>
+                 <th style="text-align: right; padding: 4px 0; width: 20%;">Rate</th>
+                 <th style="text-align: right; padding: 4px 0; width: 20%;">Total</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${rowsBuf.toString()}
+             </tbody>
+           </table>
+           
+           <div class="divider"></div>
+           
+           <table style="width: 100%; font-size: 11px;">
+             <tr>
+               <td style="padding: 2px 0;">Sub Total</td>
+               <td style="text-align: right; padding: 2px 0;">Rs. ${order.subtotal.toStringAsFixed(2)}</td>
+             </tr>
+             $discountHtml
+             $taxHtml
+             $deliveryChargesHtml
+             <tr style="font-weight: bold; font-size: 13px; border-top: 1px solid #000; border-bottom: 1px solid #000;">
+               <td style="padding: 4px 0;">GRAND TOTAL</td>
+               <td style="text-align: right; padding: 4px 0;">Rs. ${order.grandTotal.toStringAsFixed(2)}</td>
+             </tr>
+           </table>
+           $cashChangeHtml
+           <div class="divider"></div>
+           <div class="center" style="font-size: 11px; margin-top: 8px; font-weight: bold;">Thank You!</div>
+           <div class="center" style="font-size: 11px; font-weight: bold;">Please Visit Again</div>
           
           <div class="divider"></div>
-          <div class="center" style="font-size: 10px; margin-top: 4px;">Printed Date/Time: $printedDateTime</div>
+          <div class="center" style="font-size: 9px; margin-top: 4px;">Printed Date/Time: $printedDateTime</div>
           <div class="divider"></div>
           
-          <div class="center bold" style="font-size: 10px; margin-top: 4px;">POS System Developed By</div>
-          <div class="center" style="font-size: 10px; font-weight: bold;">Voryent Solution  0329 7600120</div>
+          <div class="center bold" style="font-size: 9px; margin-top: 4px;">POS System Developed By</div>
+          <div class="center" style="font-size: 9px; font-weight: bold;">Voryent Solution  0329 7600120</div>
           
           <script>
             setTimeout(function() {
@@ -1142,6 +1171,140 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
     });
   } catch (e, stack) {
     debugPrint("triggerWebPrint error: $e\n$stack");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Print triggering failed: $e"), backgroundColor: Colors.red),
+    );
+  }
+}
+
+void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
+  try {
+    final logoSrc = _cachedLogoBase64 ?? 'assets/receipt_logo.png';
+    final printedDateTime = DateFormat('dd/MM/yy hh:mm a').format(DateTime.now());
+
+    final iframe = html.IFrameElement()
+      ..style.position = 'absolute'
+      ..style.width = '0'
+      ..style.height = '0'
+      ..style.border = 'none';
+      
+    html.document.body?.append(iframe);
+
+    iframe.srcdoc = '''
+      <html>
+        <head>
+          <base href="${html.window.location.origin}/">
+          <title>PRINT DAILY CLOSING</title>
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+            @page {
+              margin: 0;
+            }
+             body {
+               font-family: 'Times New Roman', Times, serif;
+               width: 100%;
+               max-width: 100%;
+               margin: 0;
+               padding: 2mm 6mm;
+               font-size: 12px;
+               line-height: 1.3;
+               color: #000;
+             }
+             .center { text-align: center; }
+             .bold { font-weight: bold; }
+             .divider {
+               border-top: 1px solid #000;
+               margin: 6px 0;
+             }
+             .header-logo {
+               max-width: 150px;
+               max-height: 150px;
+               display: block;
+               margin: 0 auto 8px auto;
+             }
+           </style>
+         </head>
+         <body>
+           <img class="header-logo" src="$logoSrc" alt="Logo">
+           
+           <div class="center" style="font-size: 9px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
+           <div class="center" style="font-size: 9px;">0321-8086322 / 0318-6941313</div>
+           <div class="center bold" style="font-size: 11px; margin: 6px 0; padding: 2px 0; border: 1px solid #000;">
+             DAILY CLOSING SUMMARY
+           </div>
+           
+           <div class="divider"></div>
+           
+           <div style="font-size: 11px;">
+             <div>Logical Date: ${closing.id}</div>
+             <div style="margin-top: 3px;">Closed By: ${closing.closedByName}</div>
+             <div style="margin-top: 3px;">Printed Date/Time: $printedDateTime</div>
+           </div>
+           
+           <div class="divider"></div>
+           
+           <table style="width: 100%; font-size: 11px;">
+             <tr>
+               <td style="padding: 2px 0;">Total Punch Orders</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold;">${closing.totalPunchOrders}</td>
+             </tr>
+             <tr>
+               <td style="padding: 2px 0;">Total Confirmed Orders</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold;">${closing.totalConfirmedOrders}</td>
+             </tr>
+             <tr>
+               <td style="padding: 2px 0;">Cancelled Orders</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold;">${closing.cancelledOrders}</td>
+             </tr>
+             <tr style="font-weight: bold; border-top: 1px dashed #000;">
+               <td style="padding: 4px 0;">Total Today Revenue</td>
+               <td style="text-align: right; padding: 4px 0;">Rs. ${closing.totalTodayRevenue.toStringAsFixed(2)}</td>
+             </tr>
+           </table>
+           
+           <div class="divider"></div>
+           
+           <table style="width: 100%; font-size: 11px;">
+             <tr>
+               <td style="padding: 2px 0;">Total Cash</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold;">Rs. ${closing.cashAmount.toStringAsFixed(2)}</td>
+             </tr>
+             <tr>
+               <td style="padding: 2px 0;">Online Payment</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold;">Rs. ${closing.onlineAmount.toStringAsFixed(2)}</td>
+             </tr>
+             <tr>
+               <td style="padding: 2px 0;">Card Payment</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold;">Rs. ${closing.cardAmount.toStringAsFixed(2)}</td>
+             </tr>
+             <tr style="font-weight: bold; border-top: 1px solid #000;">
+               <td style="padding: 4px 0;">Total Received Amount</td>
+               <td style="text-align: right; padding: 4px 0;">Rs. ${(closing.cashAmount + closing.onlineAmount + closing.cardAmount).toStringAsFixed(2)}</td>
+             </tr>
+           </table>
+           
+           <div class="divider"></div>
+           
+           <div class="center bold" style="font-size: 9px; margin-top: 4px;">POS System Developed By</div>
+           <div class="center" style="font-size: 9px; font-weight: bold;">Voryent Solution  0329 7600120</div>
+           
+           <script>
+             setTimeout(function() {
+               window.focus();
+               window.print();
+             }, 50);
+           </script>
+         </body>
+       </html>
+    ''';
+    
+    Timer(const Duration(seconds: 30), () {
+      iframe.remove();
+    });
+  } catch (e, stack) {
+    debugPrint("triggerClosingPrint error: $e\n$stack");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Print triggering failed: $e"), backgroundColor: Colors.red),
     );

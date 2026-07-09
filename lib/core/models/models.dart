@@ -729,6 +729,7 @@ class SettingsModel {
   final double deliveryCharges;
   final double taxRate;
   final DateTime updatedAt;
+  final String cashierReportPassword;
 
   SettingsModel({
     required this.id,
@@ -736,6 +737,7 @@ class SettingsModel {
     required this.deliveryCharges,
     required this.taxRate,
     required this.updatedAt,
+    this.cashierReportPassword = '',
   });
 
   SettingsModel copyWith({
@@ -744,6 +746,7 @@ class SettingsModel {
     double? deliveryCharges,
     double? taxRate,
     DateTime? updatedAt,
+    String? cashierReportPassword,
   }) {
     return SettingsModel(
       id: id ?? this.id,
@@ -751,6 +754,7 @@ class SettingsModel {
       deliveryCharges: deliveryCharges ?? this.deliveryCharges,
       taxRate: taxRate ?? this.taxRate,
       updatedAt: updatedAt ?? this.updatedAt,
+      cashierReportPassword: cashierReportPassword ?? this.cashierReportPassword,
     );
   }
 
@@ -761,6 +765,7 @@ class SettingsModel {
       'deliveryCharges': deliveryCharges,
       'taxRate': taxRate,
       'updatedAt': updatedAt.toUtc().toIso8601String(),
+      'cashierReportPassword': cashierReportPassword,
     };
   }
 
@@ -771,6 +776,102 @@ class SettingsModel {
       deliveryCharges: _parseDouble(map['deliveryCharges']),
       taxRate: _parseDouble(map['taxRate']),
       updatedAt: _parseDateTime(map['updatedAt']),
+      cashierReportPassword: map['cashierReportPassword'] ?? '',
+    );
+  }
+}
+
+// 10. DailyClosingModel
+class DailyClosingModel {
+  final String id; // format: "YYYY-MM-DD"
+  final double cashAmount;
+  final double onlineAmount;
+  final double cardAmount;
+  final int totalPunchOrders;
+  final int cancelledOrders;
+  final int totalConfirmedOrders;
+  final double totalTodayRevenue;
+  final String closedBy;
+  final String closedByName;
+  final DateTime createdAt;
+  final bool isReleased;
+
+  DailyClosingModel({
+    required this.id,
+    required this.cashAmount,
+    required this.onlineAmount,
+    required this.cardAmount,
+    required this.totalPunchOrders,
+    required this.cancelledOrders,
+    required this.totalConfirmedOrders,
+    required this.totalTodayRevenue,
+    required this.closedBy,
+    required this.closedByName,
+    required this.createdAt,
+    required this.isReleased,
+  });
+
+  DailyClosingModel copyWith({
+    String? id,
+    double? cashAmount,
+    double? onlineAmount,
+    double? cardAmount,
+    int? totalPunchOrders,
+    int? cancelledOrders,
+    int? totalConfirmedOrders,
+    double? totalTodayRevenue,
+    String? closedBy,
+    String? closedByName,
+    DateTime? createdAt,
+    bool? isReleased,
+  }) {
+    return DailyClosingModel(
+      id: id ?? this.id,
+      cashAmount: cashAmount ?? this.cashAmount,
+      onlineAmount: onlineAmount ?? this.onlineAmount,
+      cardAmount: cardAmount ?? this.cardAmount,
+      totalPunchOrders: totalPunchOrders ?? this.totalPunchOrders,
+      cancelledOrders: cancelledOrders ?? this.cancelledOrders,
+      totalConfirmedOrders: totalConfirmedOrders ?? this.totalConfirmedOrders,
+      totalTodayRevenue: totalTodayRevenue ?? this.totalTodayRevenue,
+      closedBy: closedBy ?? this.closedBy,
+      closedByName: closedByName ?? this.closedByName,
+      createdAt: createdAt ?? this.createdAt,
+      isReleased: isReleased ?? this.isReleased,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'cashAmount': cashAmount,
+      'onlineAmount': onlineAmount,
+      'cardAmount': cardAmount,
+      'totalPunchOrders': totalPunchOrders,
+      'cancelledOrders': cancelledOrders,
+      'totalConfirmedOrders': totalConfirmedOrders,
+      'totalTodayRevenue': totalTodayRevenue,
+      'closedBy': closedBy,
+      'closedByName': closedByName,
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'isReleased': isReleased,
+    };
+  }
+
+  factory DailyClosingModel.fromMap(Map<String, dynamic> map, String docId) {
+    return DailyClosingModel(
+      id: docId,
+      cashAmount: _parseDouble(map['cashAmount']),
+      onlineAmount: _parseDouble(map['onlineAmount']),
+      cardAmount: _parseDouble(map['cardAmount']),
+      totalPunchOrders: map['totalPunchOrders'] ?? 0,
+      cancelledOrders: map['cancelledOrders'] ?? 0,
+      totalConfirmedOrders: map['totalConfirmedOrders'] ?? 0,
+      totalTodayRevenue: _parseDouble(map['totalTodayRevenue']),
+      closedBy: map['closedBy'] ?? '',
+      closedByName: map['closedByName'] ?? '',
+      createdAt: _parseDateTime(map['createdAt']),
+      isReleased: map['isReleased'] ?? false,
     );
   }
 }

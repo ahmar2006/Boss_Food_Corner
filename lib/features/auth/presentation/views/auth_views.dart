@@ -132,25 +132,25 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 children: [
                   Image.asset(
                     'assets/logo1.png',
-                    height: 80,
+                    height: 200,
                     errorBuilder: (context, error, stackTrace) => const CircleAvatar(
                       radius: 40,
                       backgroundColor: AppTheme.primaryColor,
                       child: Icon(Icons.restaurant, size: 40, color: Colors.white),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "BOSS FOOD CORNER",
-                    textAlign: .center,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryColor, letterSpacing: 1),
-                  ),
-                  const Text(
-                    "POS Management Portal",
-                    textAlign: .center,
-                    style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 24),
+                  // const SizedBox(height: 12),
+                  // const Text(
+                  //   "BOSS FOOD CORNER",
+                  //   textAlign: .center,
+                  //   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryColor, letterSpacing: 1),
+                  // ),
+                  // const Text(
+                  //   "POS Management Portal",
+                  //   textAlign: .center,
+                  //   style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+                  // ),
+                  // const SizedBox(height: 24),
                   CustomTextField(
                     label: "Email Address",
                     placeholder: "e.g., ali@example.com",

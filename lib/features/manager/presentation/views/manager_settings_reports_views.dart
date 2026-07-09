@@ -352,6 +352,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   final _phoneController = TextEditingController();
   final _deliveryController = TextEditingController();
   final _taxController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -359,11 +360,21 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _loadSettings();
   }
 
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _deliveryController.dispose();
+    _taxController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   void _loadSettings() async {
     final settings = await ref.read(settingsRepositoryProvider).getSettings();
     _phoneController.text = settings.phoneNumber;
     _deliveryController.text = settings.deliveryCharges.toString();
     _taxController.text = settings.taxRate.toString();
+    _passwordController.text = settings.cashierReportPassword;
   }
 
   void _showError(String err) {
@@ -382,6 +393,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       final phone = _phoneController.text.trim();
       final del = double.parse(_deliveryController.text);
       final tax = double.parse(_taxController.text);
+      final pass = _passwordController.text.trim();
 
       final settings = SettingsModel(
         id: "default",
@@ -389,6 +401,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         deliveryCharges: del,
         taxRate: tax,
         updatedAt: DateTime.now(),
+        cashierReportPassword: pass,
       );
 
       try {
@@ -441,7 +454,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       const Text(
                         "Configure Restaurant POS Rules",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-                        textAlign: .center,
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 20),
 
@@ -472,11 +485,92 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        label: "Cashier Reports Password",
+                        placeholder: "Enter password (or leave empty to disable)",
+                        controller: _passwordController,
+                        prefixIcon: Icons.lock_outline,
+                        validator: (val) => null,
+                      ),
                       const SizedBox(height: 24),
                       CustomButton(
                         text: "SAVE SETTINGS",
                         isLoading: actionState.isLoading,
                         onPressed: _onSave,
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Manage Daily Closing",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<DailyClosingModel?>(
+                        stream: ref.read(orderRepositoryProvider).watchDailyClosing(
+                          DateFormat('yyyy-MM-dd').format(
+                            DateTime.now().hour < 5
+                                ? DateTime.now().subtract(const Duration(days: 1))
+                                : DateTime.now()
+                          )
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          final closing = snapshot.data;
+                          if (closing == null) {
+                            return const Center(
+                              child: Text(
+                                "Today's closing has not been submitted yet.",
+                                style: TextStyle(color: Colors.grey, fontSize: 13),
+                              ),
+                            );
+                          }
+                          if (closing.isReleased) {
+                            return const Center(
+                              child: Text(
+                                "Today's closing is currently released (unlocked for cashier edits).",
+                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                            );
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Text(
+                                "Today's closing is SUBMITTED and locked.",
+                                style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              CustomButton(
+                                text: "RELEASE DAILY CLOSING",
+                                color: Colors.orange,
+                                onPressed: () async {
+                                  final dateStr = DateFormat('yyyy-MM-dd').format(
+                                    DateTime.now().hour < 5
+                                        ? DateTime.now().subtract(const Duration(days: 1))
+                                        : DateTime.now()
+                                  );
+                                  try {
+                                    await ref.read(orderRepositoryProvider).releaseDailyClosing(dateStr);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Daily closing released successfully!"), backgroundColor: Colors.green),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       CustomButton(
