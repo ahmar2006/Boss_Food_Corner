@@ -1062,7 +1062,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
               width: 100%;
             }
             .header-logo {
-              width: 30mm;
+              width: 50mm;
               height: auto;
               display: block;
               margin: 0 auto 2mm auto;
