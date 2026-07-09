@@ -991,8 +991,8 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
     iframe.style
       ..position = 'absolute'
       ..left = '-9999px'
-      ..width = '300px'
-      ..height = '1200px'
+      ..width = '400px'
+      ..height = '1600px'
       ..border = 'none';
       
     html.document.body?.append(iframe);
@@ -1053,9 +1053,9 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
             }
             body {
               font-family: 'Times New Roman', Times, serif;
-              width: 72mm;
+              width: 68mm;
               margin: 0 auto;
-              padding: 3mm 0;
+              padding: 2mm 0;
               font-size: 8.5pt;
               line-height: 1.4;
               color: #000;
@@ -1065,9 +1065,9 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
                 width: 80mm;
               }
               body {
-                width: 72mm;
+                width: 68mm;
                 margin: 0 auto;
-                padding: 3mm 0;
+                padding: 2mm 0;
               }
             }
             .center { text-align: center; }
@@ -1212,8 +1212,9 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
 
     final iframe = html.IFrameElement()
       ..style.position = 'absolute'
-      ..style.width = '0'
-      ..style.height = '0'
+      ..style.left = '-9999px'
+      ..style.width = '400px'
+      ..style.height = '1600px'
       ..style.border = 'none';
       
     html.document.body?.append(iframe);
@@ -1241,9 +1242,9 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
             }
             body {
               font-family: 'Times New Roman', Times, serif;
-              width: 72mm;
+              width: 68mm;
               margin: 0 auto;
-              padding: 3mm 0;
+              padding: 2mm 0;
               font-size: 8.5pt;
               line-height: 1.4;
               color: #000;
@@ -1253,9 +1254,9 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
                 width: 80mm;
               }
               body {
-                width: 72mm;
+                width: 68mm;
                 margin: 0 auto;
-                padding: 3mm 0;
+                padding: 2mm 0;
               }
             }
             .center { text-align: center; }
