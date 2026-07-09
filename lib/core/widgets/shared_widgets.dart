@@ -1034,7 +1034,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
             }
             @page {
               size: 80mm auto;
-              margin: 3mm 6mm;
+              margin: 3mm 8mm;
             }
             html, body {
               width: 100%;
@@ -1043,7 +1043,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
             }
             body {
               font-family: 'Times New Roman', Times, serif;
-              font-size: 8.5pt;
+              font-size: 9.5pt;
               line-height: 1.4;
               color: #000;
             }
@@ -1222,7 +1222,7 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
             }
             @page {
               size: 80mm auto;
-              margin: 3mm 6mm;
+              margin: 3mm 8mm;
             }
             html, body {
               width: 100%;
@@ -1231,7 +1231,7 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
             }
             body {
               font-family: 'Times New Roman', Times, serif;
-              font-size: 8.5pt;
+              font-size: 9.5pt;
               line-height: 1.4;
               color: #000;
             }
