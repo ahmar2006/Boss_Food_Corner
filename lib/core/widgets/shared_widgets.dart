@@ -1062,7 +1062,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
               width: 100%;
             }
             .header-logo {
-              width: 22mm;
+              width: 30mm;
               height: auto;
               display: block;
               margin: 0 auto 2mm auto;
@@ -1164,7 +1164,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
           <div class="center" style="font-size: 7.5pt; margin-top: 2px;">Printed Date/Time: $printedDateTime</div>
           <div class="divider"></div>
           
-          <div class="center bold" style="font-size: 7.5pt; margin-top: 2px;">POS System Developed By Ahmar Saleem</div>
+          <div class="center bold" style="font-size: 7.5pt; margin-top: 2px;">POS System Developed By</div>
           <div class="center" style="font-size: 7.5pt; font-weight: bold;">Voryent Solution  0329 7600120</div>
           
           <script>
