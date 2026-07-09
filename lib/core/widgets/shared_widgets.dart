@@ -1016,7 +1016,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
     final cashChangeHtml = order.isPaid
         ? '''
           <div class="divider"></div>
-          <table style="width: 100%; font-size: 11px;">
+          <table style="width: 100%; font-size: 12px;">
             <tr>
               <td style="padding: 2px 0;">Cash</td>
               <td style="text-align: right; padding: 2px 0;">Rs. ${cashVal.toStringAsFixed(2)}</td>
@@ -1048,7 +1048,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
                max-width: 100%;
                margin: 0;
                padding: 2mm 6mm;
-               font-size: 12px;
+               font-size: 13px;
                line-height: 1.3;
                color: #000;
              }
@@ -1069,22 +1069,22 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
          <body>
            <img class="header-logo" src="$logoSrc" alt="Logo">
            
-           <div class="center" style="font-size: 9px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
-           <div class="center" style="font-size: 9px;">0321-8086322 / 0318-6941313</div>
-           <div class="center bold" style="font-size: 11px; margin: 6px 0; padding: 2px 0; border: 1px solid #000; text-transform: uppercase;">
+           <div class="center" style="font-size: 10px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
+           <div class="center" style="font-size: 10px;">0321-8086322 / 0318-6941313</div>
+           <div class="center bold" style="font-size: 12px; margin: 6px 0; padding: 2px 0; border: 1px solid #000; text-transform: uppercase;">
              $orderStatus
            </div>
            
            <div class="divider"></div>
            
-           <div style="display: flex; justify-content: space-between; font-size: 11px;">
+           <div style="display: flex; justify-content: space-between; font-size: 12px;">
              <span>Token-ID# $orderTokenId</span>
              <span>Order-ID: $orderId</span>
            </div>
            
            <div class="divider"></div>
            
-           <div style="font-size: 11px;">
+           <div style="font-size: 12px;">
              <div style="display: flex; justify-content: space-between;">
                <span>Date: $orderDate</span>
                <span>Time: $orderTime</span>
@@ -1096,11 +1096,11 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
            
            <div class="divider"></div>
            
-           <div class="center bold" style="font-size: 11px; letter-spacing: 0.5px;">Customer Details</div>
+           <div class="center bold" style="font-size: 12px; letter-spacing: 0.5px;">Customer Details</div>
            
            <div class="divider"></div>
            
-           <div style="line-height: 1.4; font-size: 11px;">
+           <div style="line-height: 1.4; font-size: 12px;">
              <div>Type: $orderType</div>
              <div>Customer: $customerName</div>
              $tableNumberHtml
@@ -1110,7 +1110,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
            
            <div class="divider"></div>
            
-           <div class="center bold" style="font-size: 11px; letter-spacing: 0.5px;">Order Details</div>
+           <div class="center bold" style="font-size: 12px; letter-spacing: 0.5px;">Order Details</div>
            
            <div class="divider"></div>
            
@@ -1130,7 +1130,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
            
            <div class="divider"></div>
            
-           <table style="width: 100%; font-size: 11px;">
+           <table style="width: 100%; font-size: 12px;">
              <tr>
                <td style="padding: 2px 0;">Sub Total</td>
                <td style="text-align: right; padding: 2px 0;">Rs. ${order.subtotal.toStringAsFixed(2)}</td>
@@ -1138,22 +1138,22 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
              $discountHtml
              $taxHtml
              $deliveryChargesHtml
-             <tr style="font-weight: bold; font-size: 13px; border-top: 1px solid #000; border-bottom: 1px solid #000;">
+             <tr style="font-weight: bold; font-size: 14px; border-top: 1px solid #000; border-bottom: 1px solid #000;">
                <td style="padding: 4px 0;">GRAND TOTAL</td>
                <td style="text-align: right; padding: 4px 0;">Rs. ${order.grandTotal.toStringAsFixed(2)}</td>
              </tr>
            </table>
            $cashChangeHtml
            <div class="divider"></div>
-           <div class="center" style="font-size: 11px; margin-top: 8px; font-weight: bold;">Thank You!</div>
-           <div class="center" style="font-size: 11px; font-weight: bold;">Please Visit Again</div>
+           <div class="center" style="font-size: 12px; margin-top: 8px; font-weight: bold;">Thank You!</div>
+           <div class="center" style="font-size: 12px; font-weight: bold;">Please Visit Again</div>
           
           <div class="divider"></div>
-          <div class="center" style="font-size: 9px; margin-top: 4px;">Printed Date/Time: $printedDateTime</div>
+          <div class="center" style="font-size: 10px; margin-top: 4px;">Printed Date/Time: $printedDateTime</div>
           <div class="divider"></div>
           
-          <div class="center bold" style="font-size: 9px; margin-top: 4px;">POS System Developed By</div>
-          <div class="center" style="font-size: 9px; font-weight: bold;">Voryent Solution  0329 7600120</div>
+          <div class="center bold" style="font-size: 10px; margin-top: 4px;">POS System Developed By</div>
+          <div class="center" style="font-size: 10px; font-weight: bold;">Voryent Solution  0329 7600120</div>
           
           <script>
             setTimeout(function() {
@@ -1208,7 +1208,7 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
                max-width: 100%;
                margin: 0;
                padding: 2mm 6mm;
-               font-size: 12px;
+               font-size: 13px;
                line-height: 1.3;
                color: #000;
              }
@@ -1229,15 +1229,15 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
          <body>
            <img class="header-logo" src="$logoSrc" alt="Logo">
            
-           <div class="center" style="font-size: 9px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
-           <div class="center" style="font-size: 9px;">0321-8086322 / 0318-6941313</div>
-           <div class="center bold" style="font-size: 11px; margin: 6px 0; padding: 2px 0; border: 1px solid #000;">
+           <div class="center" style="font-size: 10px; margin-top: 2px;">1/4-L Chak Road Near Hassan Block Okara</div>
+           <div class="center" style="font-size: 10px;">0321-8086322 / 0318-6941313</div>
+           <div class="center bold" style="font-size: 12px; margin: 6px 0; padding: 2px 0; border: 1px solid #000;">
              DAILY CLOSING SUMMARY
            </div>
            
            <div class="divider"></div>
            
-           <div style="font-size: 11px;">
+           <div style="font-size: 12px;">
              <div>Logical Date: ${closing.id}</div>
              <div style="margin-top: 3px;">Closed By: ${closing.closedByName}</div>
              <div style="margin-top: 3px;">Printed Date/Time: $printedDateTime</div>
@@ -1245,7 +1245,7 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
            
            <div class="divider"></div>
            
-           <table style="width: 100%; font-size: 11px;">
+           <table style="width: 100%; font-size: 12px;">
              <tr>
                <td style="padding: 2px 0;">Total Punch Orders</td>
                <td style="text-align: right; padding: 2px 0; font-weight: bold;">${closing.totalPunchOrders}</td>
@@ -1266,7 +1266,7 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
            
            <div class="divider"></div>
            
-           <table style="width: 100%; font-size: 11px;">
+           <table style="width: 100%; font-size: 12px;">
              <tr>
                <td style="padding: 2px 0;">Total Cash</td>
                <td style="text-align: right; padding: 2px 0; font-weight: bold;">Rs. ${closing.cashAmount.toStringAsFixed(2)}</td>
@@ -1287,8 +1287,8 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
            
            <div class="divider"></div>
            
-           <div class="center bold" style="font-size: 9px; margin-top: 4px;">POS System Developed By</div>
-           <div class="center" style="font-size: 9px; font-weight: bold;">Voryent Solution  0329 7600120</div>
+           <div class="center bold" style="font-size: 10px; margin-top: 4px;">POS System Developed By</div>
+           <div class="center" style="font-size: 10px; font-weight: bold;">Voryent Solution  0329 7600120</div>
            
            <script>
              setTimeout(function() {
