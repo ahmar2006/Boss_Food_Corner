@@ -1,19 +1,22 @@
 #!/bin/bash
-
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-# Clone Flutter stable branch from official repository
-echo "Downloading Flutter..."
-git clone https://github.com -b stable --depth 1
+# 1. Define where Flutter will be installed
+export FLUTTER_HOME="$SIGN_OUT_DIR/flutter"
+export PATH="$PATH:$FLUTTER_HOME/bin"
 
-# Add Flutter to the system path
-export PATH="$PATH:$PATH_TO_FLUTTER/flutter/bin"
+# 2. Clone Flutter WITHOUT the shallow depth constraint (--depth 1)
+# This prevents the Git 128 error during internal version checks
+echo "Downloading stable Flutter SDK..."
+git clone https://github.com/flutter/flutter.git -b stable $FLUTTER_HOME
 
-# Upgrade and run doctor to ensure everything is ready
-flutter doctor
+# 3. Disable Flutter tracking & analytics to prevent unexpected terminal pauses
+flutter config --no-analytics
 
-# Enable web support and build the project
-echo "Building Flutter Web App..."
+# 4. Explicitly bypass Git version check crashes
+git config --global --add safe.directory '*'
+
+# 5. Build the web app
+echo "Building Flutter Web application..."
 flutter config --enable-web
 flutter build web --release
