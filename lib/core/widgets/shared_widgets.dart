@@ -1033,39 +1033,63 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
     iframe.srcdoc = '''
       <html>
         <head>
-          <base href="${html.window.location.origin}/">
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>PRINT RECEIPT</title>
           <style>
             * {
               box-sizing: border-box;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
             }
             @page {
+              size: 80mm auto;
               margin: 0;
             }
-             body {
-               font-family: 'Times New Roman', Times, serif;
-               width: 100%;
-               max-width: 100%;
-               margin: 0;
-               padding: 2mm 6mm;
-               font-size: 13px;
-               line-height: 1.3;
-               color: #000;
-             }
-             .center { text-align: center; }
-             .bold { font-weight: bold; }
-             .divider {
-               border-top: 1px solid #000;
-               margin: 6px 0;
-             }
-             .header-logo {
-               max-width: 150px;
-               max-height: 150px;
-               display: block;
-               margin: 0 auto 8px auto;
-             }
-           </style>
-         </head>
+            html, body {
+              width: 280px;
+              max-width: 280px;
+              overflow-x: hidden;
+            }
+            body {
+              font-family: 'Times New Roman', Times, serif;
+              margin: 0 auto;
+              padding: 4mm 4mm;
+              font-size: 13px;
+              line-height: 1.4;
+              color: #000;
+            }
+            @media print {
+              html, body {
+                width: 280px;
+                max-width: 280px;
+                overflow-x: hidden;
+              }
+            }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .divider {
+              border-top: 1px solid #000;
+              margin: 6px 0;
+              width: 100%;
+            }
+            .header-logo {
+              width: 100px;
+              height: auto;
+              display: block;
+              margin: 0 auto 8px auto;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              table-layout: fixed;
+            }
+            td, th {
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+            }
+          </style>
+        </head>
          <body>
            <img class="header-logo" src="$logoSrc" alt="Logo">
            
@@ -1193,39 +1217,63 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
     iframe.srcdoc = '''
       <html>
         <head>
-          <base href="${html.window.location.origin}/">
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>PRINT DAILY CLOSING</title>
           <style>
             * {
               box-sizing: border-box;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
             }
             @page {
+              size: 80mm auto;
               margin: 0;
             }
-             body {
-               font-family: 'Times New Roman', Times, serif;
-               width: 100%;
-               max-width: 100%;
-               margin: 0;
-               padding: 2mm 6mm;
-               font-size: 13px;
-               line-height: 1.3;
-               color: #000;
-             }
-             .center { text-align: center; }
-             .bold { font-weight: bold; }
-             .divider {
-               border-top: 1px solid #000;
-               margin: 6px 0;
-             }
-             .header-logo {
-               max-width: 150px;
-               max-height: 150px;
-               display: block;
-               margin: 0 auto 8px auto;
-             }
-           </style>
-         </head>
+            html, body {
+              width: 280px;
+              max-width: 280px;
+              overflow-x: hidden;
+            }
+            body {
+              font-family: 'Times New Roman', Times, serif;
+              margin: 0 auto;
+              padding: 4mm 4mm;
+              font-size: 13px;
+              line-height: 1.4;
+              color: #000;
+            }
+            @media print {
+              html, body {
+                width: 280px;
+                max-width: 280px;
+                overflow-x: hidden;
+              }
+            }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .divider {
+              border-top: 1px solid #000;
+              margin: 6px 0;
+              width: 100%;
+            }
+            .header-logo {
+              width: 100px;
+              height: auto;
+              display: block;
+              margin: 0 auto 8px auto;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              table-layout: fixed;
+            }
+            td, th {
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+            }
+          </style>
+        </head>
          <body>
            <img class="header-logo" src="$logoSrc" alt="Logo">
            
