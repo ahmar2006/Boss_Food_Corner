@@ -1153,7 +1153,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
           <div class="divider"></div>
           
           <div class="center bold" style="font-size: 10px; margin-top: 4px;">POS System Developed By</div>
-          <div class="center" style="font-size: 10px; font-weight: bold;">Voryent Solution  0329 7600120</div>
+          <div class="center" style="font-size: 10px; font-weight: bold;">Ahmar Voryent Solution  0329 7600120</div>
           
           <script>
             setTimeout(function() {
