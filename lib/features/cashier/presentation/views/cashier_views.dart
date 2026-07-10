@@ -517,11 +517,21 @@ class _POSViewState extends ConsumerState<POSView> {
     final isMock = ref.watch(isMockModeProvider);
 
     // Filter menu items by search and category selection
-    final filteredItems = activeMenuItems.where((item) {
-      final matchesQuery = item.name.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCat = _selectedCatId == "All" || item.categoryId == _selectedCatId;
-      return matchesQuery && matchesCat;
-    }).toList();
+    final List<dynamic> filteredItems = [];
+    if (_selectedCatId == "All") {
+      filteredItems.addAll(activeMenuItems.where((item) {
+        return item.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      }));
+      filteredItems.addAll(activeDeals.where((deal) {
+        return deal.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      }));
+    } else {
+      filteredItems.addAll(activeMenuItems.where((item) {
+        final matchesQuery = item.name.toLowerCase().contains(_searchQuery.toLowerCase());
+        final matchesCat = item.categoryId == _selectedCatId;
+        return matchesQuery && matchesCat;
+      }));
+    }
 
     // 1. LEFT PANEL: MENU BROWSER
     Widget menuPanel = Padding(
@@ -619,101 +629,176 @@ class _POSViewState extends ConsumerState<POSView> {
                       ))
                 : (filteredItems.isEmpty
                     ? const EmptyStateWidget(title: "No Food Items Available", message: "Check filters or verify menu catalog is enabled.", icon: Icons.restaurant_menu)
-                    : GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: isDesktop ? 3 : 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.80,
-                        ),
-                        itemCount: filteredItems.length,
-                        itemBuilder: (context, idx) {
-                          final item = filteredItems[idx];
-                          return InkWell(
-                            onTap: () => _onAddItemPressed(item),
-                            onLongPress: () => _showItemDetails(item),
-                            child: Card(
-                              clipBehavior: Clip.antiAlias,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        buildBase64Image(item.imageBase64),
-                                        Positioned(
-                                          top: 6,
-                                          right: 6,
-                                          child: IconButton(
-                                            icon: const Icon(Icons.info, color: Colors.white70),
-                                            onPressed: () => _showItemDetails(item),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: SingleChildScrollView(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                                  if (item.variants.isNotEmpty) ...[
-                                                    const SizedBox(height: 4),
-                                                    Wrap(
-                                                      spacing: 4,
-                                                      runSpacing: 2,
-                                                      children: item.variants.map((v) {
-                                                        final priceStr = v.price != null && v.price! > 0 ? " (Rs. ${v.price!.toStringAsFixed(0)})" : "";
-                                                        return Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.grey.shade100,
-                                                            borderRadius: BorderRadius.circular(3),
-                                                            border: Border.all(color: Colors.grey.shade300),
-                                                          ),
-                                                          child: Text(
-                                                            "${v.name}$priceStr",
-                                                            style: TextStyle(color: Colors.grey.shade800, fontSize: 8, fontWeight: FontWeight.bold),
-                                                          ),
-                                                        );
-                                                      }).toList(),
-                                                    ),
-                                                  ],
-                                                ],
+                      : GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: isDesktop ? 3 : 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.80,
+                          ),
+                          itemCount: filteredItems.length,
+                          itemBuilder: (context, idx) {
+                            final item = filteredItems[idx];
+                            if (item is DealModel) {
+                              return InkWell(
+                                onTap: () {
+                                  final cartState = ref.read(cartProvider);
+                                  if (cartState.editingOrderDocId != null &&
+                                      (cartState.editingOrderStatus == "In Preparation" ||
+                                       cartState.editingOrderStatus == "Ready" ||
+                                       cartState.editingOrderStatus == "Handover")) {
+                                    _showError("Cannot edit menu items for In Preparation, Ready, or Handover orders.");
+                                    return;
+                                  }
+                                  setState(() {
+                                    _cartPanelMode = "cart";
+                                  });
+                                  ref.read(cartProvider.notifier).addDeal(item);
+                                },
+                                child: Card(
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            buildBase64Image(item.imageBase64),
+                                            Positioned(
+                                              top: 6,
+                                              left: 6,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.primaryColor,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text(
+                                                  "DEAL",
+                                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
+                                          ],
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(
-                                                item.price > 0 ? "Rs. ${item.price.toStringAsFixed(0)}" : "",
-                                                style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
-                                              ),
-                                              Text("${item.prepTime} min", style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+                                              Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "Rs. ${item.price.toStringAsFixed(0)}",
+                                                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                                                  ),
+                                                  const Icon(Icons.local_offer, color: Colors.amber, size: 16),
+                                                ],
+                                              )
                                             ],
-                                          )
-                                        ],
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              );
+                            } else {
+                              final MenuItemModel menuItem = item as MenuItemModel;
+                              return InkWell(
+                                onTap: () => _onAddItemPressed(menuItem),
+                                onLongPress: () => _showItemDetails(menuItem),
+                                child: Card(
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            buildBase64Image(menuItem.imageBase64),
+                                            Positioned(
+                                              top: 6,
+                                              right: 6,
+                                              child: IconButton(
+                                                icon: const Icon(Icons.info, color: Colors.white70),
+                                                onPressed: () => _showItemDetails(menuItem),
+                                              ),
+                                            )
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      )),
+                                      Expanded(
+                                        flex: 2,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: SingleChildScrollView(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(menuItem.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                      if (menuItem.variants.isNotEmpty) ...[
+                                                        const SizedBox(height: 4),
+                                                        Wrap(
+                                                          spacing: 4,
+                                                          runSpacing: 2,
+                                                          children: menuItem.variants.map((v) {
+                                                            final priceStr = v.price != null && v.price! > 0 ? " (Rs. ${v.price!.toStringAsFixed(0)})" : "";
+                                                            return Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.grey.shade100,
+                                                                borderRadius: BorderRadius.circular(3),
+                                                                border: Border.all(color: Colors.grey.shade300),
+                                                              ),
+                                                              child: Text(
+                                                                "${v.name}$priceStr",
+                                                                style: TextStyle(color: Colors.grey.shade800, fontSize: 8, fontWeight: FontWeight.bold),
+                                                              ),
+                                                            );
+                                                          }).toList(),
+                                                        ),
+                                                      ],
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    menuItem.price > 0 ? "Rs. ${menuItem.price.toStringAsFixed(0)}" : "",
+                                                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                                                  ),
+                                                  Text("${menuItem.prepTime} min", style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                ],
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        )),
           ),
         ],
       ),
@@ -1447,14 +1532,11 @@ class _POSViewState extends ConsumerState<POSView> {
   }
 
   Widget _buildReceiptPrinterPanel(CartState cart) {
-    final allOrders = ref.watch(allOrdersStreamProvider).value ?? [];
     final menuItems = ref.watch(menuItemsStreamProvider).value ?? [];
-    OrderModel? order;
-    if (_placedOrderDocId != null) {
-      try {
-        order = allOrders.firstWhere((o) => o.id == _placedOrderDocId);
-      } catch (_) {}
-    }
+    final orderAsync = _placedOrderDocId != null
+        ? ref.watch(singleOrderProvider(_placedOrderDocId!))
+        : const AsyncValue<OrderModel?>.data(null);
+    final OrderModel? order = orderAsync.value;
 
     if (order == null) {
       return Card(
@@ -1558,19 +1640,8 @@ class ReceiptView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orders = ref.watch(cashierOrdersStreamProvider).value ?? [];
-    OrderModel? order;
-    try {
-      order = orders.firstWhere((o) => o.id == orderId);
-    } catch (_) {}
-
-    // Fallback: check all orders
-    if (order == null) {
-      final all = ref.watch(allOrdersStreamProvider).value ?? [];
-      try {
-        order = all.firstWhere((o) => o.id == orderId);
-      } catch (_) {}
-    }
+    final orderAsync = ref.watch(singleOrderProvider(orderId));
+    final OrderModel? order = orderAsync.value;
 
     if (order == null) {
       return Scaffold(

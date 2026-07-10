@@ -60,11 +60,17 @@ class FirebaseAuthRepository implements AuthRepository {
 
     // 4. Validate credentials based on role
     if (user.role == "manager") {
-      // Manager must have authenticated with their direct password
-      if (isStaffPasswordAuth && password != "staffpassword123") {
-        await _auth.signOut();
-        throw Exception("Invalid email or password.");
+      if (isStaffPasswordAuth) {
+        // Manager authenticated with staffpassword123 — they were likely an employee
+        // whose role was changed to manager in Firestore.
+        // Verify entered password against Firestore stored password.
+        final storedPassword = doc.data()!['password'] ?? '';
+        if (storedPassword.isNotEmpty && storedPassword != password) {
+          await _auth.signOut();
+          throw Exception("Invalid email or password.");
+        }
       }
+      // Manager authenticated with their direct password — allow through
       return user;
     } else {
       // Employee flow
@@ -88,7 +94,6 @@ class FirebaseAuthRepository implements AuthRepository {
           await _auth.currentUser!.updatePassword("staffpassword123");
         } catch (e) {
           // If update password fails, log it, but don't block the user's active session.
-          // Note: In Flutter Web, we use print or logging
         }
       }
       return user;
@@ -625,103 +630,58 @@ class FirebaseOrderRepository implements OrderRepository {
     final docRef = _firestore.collection('orders').doc();
 
     try {
-      await _firestore.runTransaction<String>((transaction) async {
-        final counterSnapshot = await transaction.get(counterRef);
-        int lastId = 0;
-        if (counterSnapshot.exists) {
-          lastId = counterSnapshot.data()?['lastUsedId'] ?? 0;
-        }
-        
-        final nextId = lastId + 1;
-        transaction.set(counterRef, {'lastUsedId': nextId});
+      // Fetch both counters in parallel for speed
+      final results = await Future.wait([
+        counterRef.get(),
+        tokenCounterRef.get(),
+      ]);
 
-        final tokenSnapshot = await transaction.get(tokenCounterRef);
-        int lastToken = 0;
-        String lastDate = "";
-        if (tokenSnapshot.exists) {
-          lastToken = tokenSnapshot.data()?['lastToken'] ?? 0;
-          lastDate = tokenSnapshot.data()?['lastDate'] ?? "";
-        }
-        
-        final logicalToday = DateTime.now().subtract(const Duration(hours: 5));
-        final dateStr = DateFormat('yyyy-MM-dd').format(logicalToday);
-        
-        int nextToken = 1;
-        if (lastDate == dateStr) {
-          nextToken = lastToken + 1;
-        }
-        
-        transaction.set(tokenCounterRef, {
-          'lastToken': nextToken,
-          'lastDate': dateStr,
-        });
+      final counterSnapshot = results[0];
+      final tokenSnapshot = results[1];
 
-        final formattedId = nextId.toString().padLeft(6, '0');
-        final formattedTokenId = nextToken.toString().padLeft(3, '0');
-
-        final newOrder = order.copyWith(
-          id: docRef.id,
-          orderId: formattedId,
-          tokenId: formattedTokenId,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          statusHistory: [
-            { 'status': 'Pending', 'timestamp': DateTime.now(), 'updatedBy': order.cashierId }
-          ]
-        );
-
-        transaction.set(docRef, newOrder.toMap());
-        return formattedId;
-      });
-      return docRef.id;
-    } catch (transactionError) {
-      // Fallback: Non-transactional sequential ID generation if transaction throws on web
-      try {
-        final counterSnapshot = await counterRef.get();
-        int lastId = 0;
-        if (counterSnapshot.exists) {
-          lastId = counterSnapshot.data()?['lastUsedId'] ?? 0;
-        }
-        final nextId = lastId + 1;
-        await counterRef.set({'lastUsedId': nextId});
-
-        final tokenSnapshot = await tokenCounterRef.get();
-        int lastToken = 0;
-        String lastDate = "";
-        if (tokenSnapshot.exists) {
-          lastToken = tokenSnapshot.data()?['lastToken'] ?? 0;
-          lastDate = tokenSnapshot.data()?['lastDate'] ?? "";
-        }
-        final logicalToday = DateTime.now().subtract(const Duration(hours: 5));
-        final dateStr = DateFormat('yyyy-MM-dd').format(logicalToday);
-        int nextToken = 1;
-        if (lastDate == dateStr) {
-          nextToken = lastToken + 1;
-        }
-        await tokenCounterRef.set({
-          'lastToken': nextToken,
-          'lastDate': dateStr,
-        });
-
-        final formattedId = nextId.toString().padLeft(6, '0');
-        final formattedTokenId = nextToken.toString().padLeft(3, '0');
-        
-        final newOrder = order.copyWith(
-          id: docRef.id,
-          orderId: formattedId,
-          tokenId: formattedTokenId,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          statusHistory: [
-            { 'status': 'Pending', 'timestamp': DateTime.now(), 'updatedBy': order.cashierId }
-          ]
-        );
-
-        await docRef.set(newOrder.toMap());
-        return docRef.id;
-      } catch (fallbackError) {
-        throw Exception("Failed to place order: $fallbackError");
+      int lastId = 0;
+      if (counterSnapshot.exists) {
+        lastId = counterSnapshot.data()?['lastUsedId'] ?? 0;
       }
+      final nextId = lastId + 1;
+
+      int lastToken = 0;
+      String lastDate = "";
+      if (tokenSnapshot.exists) {
+        lastToken = tokenSnapshot.data()?['lastToken'] ?? 0;
+        lastDate = tokenSnapshot.data()?['lastDate'] ?? "";
+      }
+      final logicalToday = DateTime.now().subtract(const Duration(hours: 5));
+      final dateStr = DateFormat('yyyy-MM-dd').format(logicalToday);
+      int nextToken = 1;
+      if (lastDate == dateStr) {
+        nextToken = lastToken + 1;
+      }
+
+      final formattedId = nextId.toString().padLeft(6, '0');
+      final formattedTokenId = nextToken.toString().padLeft(3, '0');
+
+      final newOrder = order.copyWith(
+        id: docRef.id,
+        orderId: formattedId,
+        tokenId: formattedTokenId,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        statusHistory: [
+          { 'status': 'Pending', 'timestamp': DateTime.now(), 'updatedBy': order.cashierId }
+        ],
+      );
+
+      // Write all three documents in parallel using a batch
+      final batch = _firestore.batch();
+      batch.set(counterRef, {'lastUsedId': nextId});
+      batch.set(tokenCounterRef, {'lastToken': nextToken, 'lastDate': dateStr});
+      batch.set(docRef, newOrder.toMap());
+      await batch.commit();
+
+      return docRef.id;
+    } catch (e) {
+      throw Exception("Failed to place order: $e");
     }
   }
 

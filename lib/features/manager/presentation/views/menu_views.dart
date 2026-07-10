@@ -270,10 +270,6 @@ class _CategoryFormViewState extends ConsumerState<CategoryFormView> {
 
   void _onSave() async {
     if (_formKey.currentState!.validate()) {
-      if (_imageBase64.isEmpty) {
-        _showError("Category image attachment is required");
-        return;
-      }
       final name = _nameController.text.trim();
       const status = "active";
 
@@ -778,10 +774,6 @@ class _MenuItemFormViewState extends ConsumerState<MenuItemFormView> {
 
   void _onSave() async {
     if (_formKey.currentState!.validate()) {
-      if (_imageBase64.isEmpty) {
-        _showError("Menu item image attachment is required");
-        return;
-      }
       if (_selectedCatId.isEmpty) {
         _showError("A menu category must be selected");
         return;
@@ -837,6 +829,17 @@ class _MenuItemFormViewState extends ConsumerState<MenuItemFormView> {
       _selectedCatId = activeCats.first.id;
     }
 
+    // Ensure selected category is in items list to prevent Flutter dropdown crashes
+    final dropdownItems = activeCats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList();
+    if (_selectedCatId.isNotEmpty && !activeCats.any((c) => c.id == _selectedCatId)) {
+      try {
+        final cat = categories.firstWhere((c) => c.id == _selectedCatId);
+        dropdownItems.add(DropdownMenuItem(value: cat.id, child: Text("${cat.name} (Inactive)")));
+      } catch (_) {
+        dropdownItems.add(DropdownMenuItem(value: _selectedCatId, child: const Text("Unknown Category")));
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? "Edit Menu Item" : "Add Menu Item"),
@@ -890,7 +893,7 @@ class _MenuItemFormViewState extends ConsumerState<MenuItemFormView> {
                             decoration: const InputDecoration(
                               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             ),
-                            items: activeCats.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                            items: dropdownItems,
                             onChanged: (val) {
                               setState(() {
                                 _selectedCatId = val ?? "";

@@ -49,17 +49,20 @@ class _LoginViewState extends ConsumerState<LoginView> {
       
       try {
         await ref.read(authActionProvider.notifier).login(email, password, _rememberMe);
+        if (!mounted) return;
         final loginState = ref.read(authActionProvider);
         if (loginState.hasError) {
           _showError(loginState.error.toString());
         }
       } catch (e) {
+        if (!mounted) return;
         _showError(e.toString());
       }
     }
   }
 
   void _showError(String err) {
+    if (!mounted) return;
     String cleanErr = err.replaceAll("Exception: ", "");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -522,3 +522,9 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
 final cashierActionProvider = NotifierProvider<CashierActionNotifier, AsyncValue<String>>(() {
   return CashierActionNotifier();
 });
+
+// Direct single-order fetch by document ID — avoids watching all orders just to display one receipt
+final singleOrderProvider = FutureProvider.family<OrderModel?, String>((ref, docId) async {
+  if (docId.isEmpty) return null;
+  return ref.watch(orderRepositoryProvider).getOrderById(docId);
+});
