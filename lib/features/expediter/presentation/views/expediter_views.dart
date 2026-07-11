@@ -237,6 +237,7 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
   Widget build(BuildContext context) {
     final queueState = ref.watch(expediterQueueStreamProvider);
     final allOrders = ref.watch(allOrdersStreamProvider).value ?? [];
+    final menuItems = ref.watch(menuItemsStreamProvider).value ?? [];
     
     return Scaffold(
       appBar: AppBar(
@@ -266,7 +267,7 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildPendingGrid(pendingAndPrep),
+              _buildPendingGrid(pendingAndPrep, menuItems),
               _buildQueueList(ready, "No orders ready for pickup.", false),
               _buildQueueList(completed, "No orders completed today.", false),
             ],
@@ -276,7 +277,7 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
     );
   }
 
-  Widget _buildPendingGrid(List<OrderModel> orders) {
+  Widget _buildPendingGrid(List<OrderModel> orders, List<MenuItemModel> menuItems) {
     if (orders.isEmpty) {
       return const Center(
         child: Padding(
@@ -396,21 +397,38 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
                           ],
                         ),
                       )),
-                      ...ord.deals.map((d) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("1x ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
-                            Expanded(
-                              child: Text(
-                                "Bundle: ${d['name']}",
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                      ...ord.deals.map((d) {
+                        final List<dynamic> itemIds = d['itemIds'] ?? [];
+                        final itemsDescription = getDealItemsDescription(itemIds, menuItems);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("1x ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Bundle: ${d['name']}",
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                                    ),
+                                    if (itemsDescription.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2.0),
+                                        child: Text(
+                                          "Contains: $itemsDescription",
+                                          style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),
