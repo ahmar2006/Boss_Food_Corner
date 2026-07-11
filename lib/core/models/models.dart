@@ -888,24 +888,29 @@ String getDealItemsDescription(List<dynamic> itemIds, List<MenuItemModel> allMen
 
   final List<String> parts = [];
   for (final entry in counts.entries) {
-    final itemId = entry.key;
+    final key = entry.key;
     final qty = entry.value;
-    final menuItem = allMenuItems.firstWhere(
-      (m) => m.id == itemId,
-      orElse: () => MenuItemModel(
-        id: '',
-        name: 'Unknown Item',
-        categoryId: '',
-        description: '',
-        price: 0,
-        imageBase64: '',
-        prepTime: 0,
-        status: '',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
-    parts.add("${menuItem.name} x$qty");
+
+    String displayName = key;
+    if (key.contains("::")) {
+      final split = key.split("::");
+      final mId = split[0];
+      final varName = split[1];
+      try {
+        final match = allMenuItems.firstWhere((m) => m.id == mId);
+        displayName = "${match.name} ($varName)";
+      } catch (_) {
+        displayName = varName;
+      }
+    } else {
+      try {
+        final match = allMenuItems.firstWhere((m) => m.id == key);
+        displayName = match.name;
+      } catch (_) {
+        displayName = key;
+      }
+    }
+    parts.add("$displayName x$qty");
   }
   return parts.join(", ");
 }

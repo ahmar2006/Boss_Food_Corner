@@ -218,12 +218,15 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
+  final _checklistSearchController = TextEditingController();
+  final _manualItemController = TextEditingController();
 
   List<String> _selectedItemIds = [];
   String _imageBase64 = "";
   bool _isActive = true;
   bool _isEditing = false;
   DealModel? _existingDeal;
+  String _checklistSearchQuery = "";
 
   @override
   void initState() {
@@ -252,6 +255,8 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
+    _checklistSearchController.dispose();
+    _manualItemController.dispose();
     super.dispose();
   }
 
@@ -317,10 +322,59 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
     // Calculate original sum value of items
     double originalTotal = 0;
     for (var itemId in _selectedItemIds) {
-      final match = activeItems.firstWhere((i) => i.id == itemId,
-          orElse: () => MenuItemModel(id: '', name: '', categoryId: '', description: '', price: 0, imageBase64: '', prepTime: 0, status: '', createdAt: DateTime.now(), updatedAt: DateTime.now()));
-      originalTotal += match.price;
+      if (itemId.contains("::")) {
+        final split = itemId.split("::");
+        final mId = split[0];
+        final varName = split[1];
+        MenuItemModel? match;
+        for (final item in activeItems) {
+          if (item.id == mId) {
+            match = item;
+            break;
+          }
+        }
+        if (match != null) {
+          MenuItemVariant? variant;
+          for (final v in match.variants) {
+            if (v.name == varName) {
+              variant = v;
+              break;
+            }
+          }
+          originalTotal += (variant?.price ?? match.price);
+        }
+      } else {
+        MenuItemModel? match;
+        for (final item in activeItems) {
+          if (item.id == itemId) {
+            match = item;
+            break;
+          }
+        }
+        if (match != null) {
+          originalTotal += match.price;
+        }
+      }
     }
+
+    final List<_ChecklistItem> checklistOptions = [];
+    for (final item in activeItems) {
+      if (item.variants.isEmpty) {
+        checklistOptions.add(_ChecklistItem(id: item.id, name: item.name, price: item.price));
+      } else {
+        for (final v in item.variants) {
+          checklistOptions.add(_ChecklistItem(
+            id: "${item.id}::${v.name}",
+            name: "${item.name} (${v.name})",
+            price: v.price ?? item.price,
+          ));
+        }
+      }
+    }
+
+    final filteredChecklist = checklistOptions.where((opt) {
+      return opt.name.toLowerCase().contains(_checklistSearchQuery.toLowerCase());
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -348,7 +402,7 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
                       Text(
                         _isEditing ? "Modify Deal Bundle" : "Package Promotional Deal",
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-                        textAlign: .center,
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 20),
                       CustomTextField(
@@ -379,22 +433,37 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
                         style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textColor, fontSize: 14),
                       ),
                       const SizedBox(height: 6),
+                      TextField(
+                        controller: _checklistSearchController,
+                        decoration: InputDecoration(
+                          hintText: "Search items...",
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            _checklistSearchQuery = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
                       Container(
                         constraints: const BoxConstraints(maxHeight: 250),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: activeItems.isEmpty
+                        child: filteredChecklist.isEmpty
                             ? const Center(child: Padding(
                                 padding: EdgeInsets.all(16.0),
-                                child: Text("No active menu items available", style: TextStyle(color: Colors.grey)),
+                                child: Text("No matching menu items available", style: TextStyle(color: Colors.grey)),
                               ))
                             : ListView.builder(
                                 shrinkWrap: true,
-                                itemCount: activeItems.length,
+                                itemCount: filteredChecklist.length,
                                 itemBuilder: (context, idx) {
-                                  final item = activeItems[idx];
+                                  final item = filteredChecklist[idx];
                                   final qty = _selectedItemIds.where((id) => id == item.id).length;
                                   final isChecked = qty > 0;
 
@@ -446,16 +515,75 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
                               ),
                       ),
                       const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CustomTextField(
+                              label: "Add Manual Package Item",
+                              placeholder: "e.g., 1.5L Soft Drink",
+                              controller: _manualItemController,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10.0),
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                              label: const Text("Add", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                final text = _manualItemController.text.trim();
+                                if (text.isNotEmpty) {
+                                  setState(() {
+                                    _selectedItemIds.add(text);
+                                    _manualItemController.clear();
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       // Chips list
                       Wrap(
                         spacing: 8.0,
                         runSpacing: 4.0,
                         children: _selectedItemIds.toSet().map((itemId) {
                           final qty = _selectedItemIds.where((id) => id == itemId).length;
-                          final match = activeItems.firstWhere((i) => i.id == itemId,
-                              orElse: () => MenuItemModel(id: '', name: 'N/A', categoryId: '', description: '', price: 0, imageBase64: '', prepTime: 0, status: '', createdAt: DateTime.now(), updatedAt: DateTime.now()));
+                          String displayName = itemId;
+                          if (itemId.contains("::")) {
+                            final split = itemId.split("::");
+                            final mId = split[0];
+                            final varName = split[1];
+                            MenuItemModel? match;
+                            for (final item in activeItems) {
+                              if (item.id == mId) {
+                                match = item;
+                                break;
+                              }
+                            }
+                            if (match != null) {
+                              displayName = "${match.name} ($varName)";
+                            }
+                          } else {
+                            MenuItemModel? match;
+                            for (final item in activeItems) {
+                              if (item.id == itemId) {
+                                match = item;
+                                break;
+                              }
+                            }
+                            if (match != null) {
+                              displayName = match.name;
+                            }
+                          }
                           return Chip(
-                            label: Text("${match.name} x $qty"),
+                            label: Text("$displayName x$qty"),
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
@@ -854,4 +982,12 @@ class _DiscountFormViewState extends ConsumerState<DiscountFormView> {
       ),
     );
   }
+}
+
+class _ChecklistItem {
+  final String id;
+  final String name;
+  final double price;
+
+  _ChecklistItem({required this.id, required this.name, required this.price});
 }

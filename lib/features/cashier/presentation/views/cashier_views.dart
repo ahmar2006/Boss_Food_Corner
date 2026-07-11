@@ -1751,6 +1751,7 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
       if (confirmed == true) {
         try {
           await ref.read(managerActionProvider.notifier).cancelOrder(order.id, reasonController.text, userId);
+          ref.invalidate(cashierOrdersStreamProvider);
           final actState = ref.read(managerActionProvider);
           if (actState.hasError) {
             _showError(context, actState.error.toString());
@@ -1779,6 +1780,7 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
 
       if (order.isPaid) {
         await ref.read(orderRepositoryProvider).updateOrderStatus(order.id, "Completed", userId, "cashier");
+        ref.invalidate(cashierOrdersStreamProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Order completed and handed over!"), backgroundColor: Colors.green),
@@ -1801,6 +1803,7 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
             change: result['change'],
           );
           await ref.read(orderRepositoryProvider).updateOrderStatus(order.id, status, userId, "cashier");
+          ref.invalidate(cashierOrdersStreamProvider);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1955,11 +1958,16 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                               amountReceived: result['cashReceived'],
                                               change: result['change'],
                                             );
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text("Order marked as PAID!"), backgroundColor: Colors.green),
-                                            );
+                                            ref.invalidate(cashierOrdersStreamProvider);
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text("Order marked as PAID!"), backgroundColor: Colors.green),
+                                              );
+                                            }
                                           } catch (e) {
-                                            _showError(context, e.toString());
+                                            if (context.mounted) {
+                                              _showError(context, e.toString());
+                                            }
                                           }
                                         }
                                       },
@@ -1998,15 +2006,35 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                                       onPressed: () async {
                                         try {
+                                          double? cashReceived;
+                                          double? changeAmount;
                                           if (!ord.isPaid) {
-                                            await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(ord.id, true, user?.uid ?? '');
+                                            final result = await showDialog<Map<String, dynamic>>(
+                                              context: context,
+                                              builder: (context) => PayBillDialog(order: ord),
+                                            );
+                                            if (result == null) return;
+                                            cashReceived = result['cashReceived'];
+                                            changeAmount = result['change'];
+                                            await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(
+                                              ord.id,
+                                              true,
+                                              user?.uid ?? '',
+                                              amountReceived: cashReceived,
+                                              change: changeAmount,
+                                            );
                                           }
                                           await ref.read(orderRepositoryProvider).updateOrderStatus(ord.id, "Completed", user?.uid ?? '', "cashier");
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text("Order completed successfully!"), backgroundColor: Colors.green),
-                                          );
+                                          ref.invalidate(cashierOrdersStreamProvider);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text("Order completed successfully!"), backgroundColor: Colors.green),
+                                            );
+                                          }
                                         } catch (e) {
-                                          _showError(context, e.toString());
+                                          if (context.mounted) {
+                                            _showError(context, e.toString());
+                                          }
                                         }
                                       },
                                       child: Text(ord.isPaid ? "Complete Order" : "Mark Paid & Complete"),
