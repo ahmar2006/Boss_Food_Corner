@@ -515,38 +515,74 @@ class _DealFormViewState extends ConsumerState<DealFormView> {
                               ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: CustomTextField(
-                              label: "Add Manual Package Item",
-                              placeholder: "e.g., 1.5L Soft Drink",
-                              controller: _manualItemController,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 10.0),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryColor,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 450;
+                          if (isNarrow) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                CustomTextField(
+                                  label: "Add Manual Package Item",
+                                  placeholder: "e.g., 1.5L Soft Drink",
+                                  controller: _manualItemController,
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                                  label: const Text("Add Manual Item", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  onPressed: () {
+                                    final text = _manualItemController.text.trim();
+                                    if (text.isNotEmpty) {
+                                      setState(() {
+                                        _selectedItemIds.add(text);
+                                        _manualItemController.clear();
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: CustomTextField(
+                                  label: "Add Manual Package Item",
+                                  placeholder: "e.g., 1.5L Soft Drink",
+                                  controller: _manualItemController,
+                                ),
                               ),
-                              icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                              label: const Text("Add", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                              onPressed: () {
-                                final text = _manualItemController.text.trim();
-                                if (text.isNotEmpty) {
-                                  setState(() {
-                                    _selectedItemIds.add(text);
-                                    _manualItemController.clear();
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ],
+                              const SizedBox(width: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10.0),
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                                  label: const Text("Add", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  onPressed: () {
+                                    final text = _manualItemController.text.trim();
+                                    if (text.isNotEmpty) {
+                                      setState(() {
+                                        _selectedItemIds.add(text);
+                                        _manualItemController.clear();
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }
                       ),
                       const SizedBox(height: 12),
                       // Chips list
@@ -916,31 +952,43 @@ class _DiscountFormViewState extends ConsumerState<DiscountFormView> {
                             style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textColor, fontSize: 14),
                           ),
                           const SizedBox(height: 6),
-                          Row(
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              Radio<String>(
-                                value: "percentage",
-                                groupValue: _discountType,
-                                activeColor: AppTheme.primaryColor,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _discountType = val ?? "percentage";
-                                  });
-                                },
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Radio<String>(
+                                    value: "percentage",
+                                    groupValue: _discountType,
+                                    activeColor: AppTheme.primaryColor,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _discountType = val ?? "percentage";
+                                      });
+                                    },
+                                  ),
+                                  const Text("Percentage (%)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                ],
                               ),
-                              const Text("Percentage (%)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                              const SizedBox(width: 24),
-                              Radio<String>(
-                                value: "fixed",
-                                groupValue: _discountType,
-                                activeColor: AppTheme.primaryColor,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _discountType = val ?? "fixed";
-                                  });
-                                },
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Radio<String>(
+                                    value: "fixed",
+                                    groupValue: _discountType,
+                                    activeColor: AppTheme.primaryColor,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _discountType = val ?? "fixed";
+                                      });
+                                    },
+                                  ),
+                                  const Text("Fixed Amount (Rs.)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                ],
                               ),
-                              const Text("Fixed Amount (Rs.)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                             ],
                           ),
                         ],

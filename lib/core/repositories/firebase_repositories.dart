@@ -606,6 +606,15 @@ class FirebaseOrderRepository implements OrderRepository {
   }
 
   @override
+  Stream<OrderModel?> watchOrderById(String docId) {
+    return _firestore
+        .collection('orders')
+        .doc(docId)
+        .snapshots()
+        .map((doc) => doc.exists ? OrderModel.fromMap(doc.data()!, doc.id) : null);
+  }
+
+  @override
   Future<OrderModel?> getOrderById(String docId) async {
     final doc = await _firestore.collection('orders').doc(docId).get();
     if (!doc.exists) return null;

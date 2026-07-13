@@ -719,146 +719,161 @@ class _ProfileViewState extends ConsumerState<ProfileView> {
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile View left card
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const CircleAvatar(
-                              radius: 40,
-                              backgroundColor: AppTheme.primaryColor,
-                              child: Icon(Icons.person, color: Colors.white, size: 48),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              user.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                              textAlign: .center,
-                            ),
-                            Text(
-                              user.role.toUpperCase(),
-                              style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-                              textAlign: .center,
-                            ),
-                            const Divider(height: 32),
-                            CustomTextField(
-                              label: "Email Address (Read Only)",
-                              controller: TextEditingController(text: user.email),
-                              prefixIcon: Icons.email,
-                              readOnly: true,
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              label: "Manager Full Name",
-                              placeholder: "e.g., John Doe",
-                              controller: _nameController,
-                              prefixIcon: Icons.badge_outlined,
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) return "Name is required";
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              label: "Support Phone Number",
-                              placeholder: "e.g., 03001234567",
-                              controller: _phoneController,
-                              prefixIcon: Icons.phone_android,
-                              keyboardType: TextInputType.phone,
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) return "Phone number is required";
-                                final clean = val.trim();
-                                if (clean.length != 11 || !clean.startsWith("03") || double.tryParse(clean) == null) {
-                                  return "Enter a valid 11 digit Pakistani number (03XXXXXXXXX)";
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            CustomButton(
-                              text: "SAVE PROFILE CHANGES",
-                              isLoading: actState.isLoading,
-                              onPressed: _onUpdateProfile,
-                            ),
-                          ],
-                        ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 750;
+                
+                final profileCard = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const CircleAvatar(
+                            radius: 40,
+                            backgroundColor: AppTheme.primaryColor,
+                            child: Icon(Icons.person, color: Colors.white, size: 48),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            user.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            user.role.toUpperCase(),
+                            style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const Divider(height: 32),
+                          CustomTextField(
+                            label: "Email Address (Read Only)",
+                            controller: TextEditingController(text: user.email),
+                            prefixIcon: Icons.email,
+                            readOnly: true,
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: "Manager Full Name",
+                            placeholder: "e.g., John Doe",
+                            controller: _nameController,
+                            prefixIcon: Icons.badge_outlined,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return "Name is required";
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: "Support Phone Number",
+                            placeholder: "e.g., 03001234567",
+                            controller: _phoneController,
+                            prefixIcon: Icons.phone_android,
+                            keyboardType: TextInputType.phone,
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return "Phone number is required";
+                              final clean = val.trim();
+                              if (clean.length != 11 || !clean.startsWith("03") || double.tryParse(clean) == null) {
+                                return "Enter a valid 11 digit Pakistani number (03XXXXXXXXX)";
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          CustomButton(
+                            text: "SAVE PROFILE CHANGES",
+                            isLoading: actState.isLoading,
+                            onPressed: _onUpdateProfile,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                // Password Card
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Form(
-                        key: _passFormKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Icon(Icons.lock_outline, color: AppTheme.secondaryColor, size: 40),
-                            const SizedBox(height: 12),
-                            const Text(
-                              "Change Password",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textColor),
-                              textAlign: .center,
-                            ),
-                            const Divider(height: 32),
-                            CustomTextField(
-                              label: "Current Password",
-                              placeholder: "Enter current password",
-                              controller: _currentController,
-                              isPassword: true,
-                              validator: (val) {
-                                if (val == null || val.isEmpty) return "Current password is required";
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              label: "New Password (min 6 chars)",
-                              placeholder: "Choose new password",
-                              controller: _newController,
-                              isPassword: true,
-                              validator: (val) {
-                                if (val == null || val.isEmpty) return "New password is required";
-                                if (val.length < 6) return "Must be at least 6 characters";
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              label: "Confirm New Password",
-                              placeholder: "Match new password",
-                              controller: _confirmController,
-                              isPassword: true,
-                              validator: (val) {
-                                if (val != _newController.text) return "Passwords do not match";
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            CustomButton(
-                              text: "CHANGE PASSWORD",
-                              isLoading: authActionState.isLoading,
-                              onPressed: _onChangePassword,
-                            ),
-                          ],
-                        ),
+                );
+
+                final passwordCard = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _passFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Icon(Icons.lock_outline, color: AppTheme.secondaryColor, size: 40),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Change Password",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textColor),
+                            textAlign: TextAlign.center,
+                          ),
+                          const Divider(height: 32),
+                          CustomTextField(
+                            label: "Current Password",
+                            placeholder: "Enter current password",
+                            controller: _currentController,
+                            isPassword: true,
+                            validator: (val) {
+                              if (val == null || val.isEmpty) return "Current password is required";
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: "New Password (min 6 chars)",
+                            placeholder: "Choose new password",
+                            controller: _newController,
+                            isPassword: true,
+                            validator: (val) {
+                              if (val == null || val.isEmpty) return "New password is required";
+                              if (val.length < 6) return "Must be at least 6 characters";
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: "Confirm New Password",
+                            placeholder: "Match new password",
+                            controller: _confirmController,
+                            isPassword: true,
+                            validator: (val) {
+                              if (val != _newController.text) return "Passwords do not match";
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          CustomButton(
+                            text: "CHANGE PASSWORD",
+                            isLoading: authActionState.isLoading,
+                            onPressed: _onChangePassword,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      profileCard,
+                      const SizedBox(height: 24),
+                      passwordCard,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: profileCard),
+                    const SizedBox(width: 24),
+                    Expanded(child: passwordCard),
+                  ],
+                );
+              }
             ),
           ),
         ),
@@ -1008,14 +1023,17 @@ class _ReportsViewState extends ConsumerState<ReportsView> with SingleTickerProv
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text("Selected Period: $dateLabel", style: TextStyle(color: Colors.grey.shade600)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text("Selected Period: $dateLabel", style: TextStyle(color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               CustomButton(
                 text: "Select Date Range",
                 onPressed: onDateSelect,

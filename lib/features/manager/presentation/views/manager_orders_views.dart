@@ -277,12 +277,10 @@ class OrderDetailView extends ConsumerWidget {
     final currentUserId = ref.watch(authStateProvider).value?.uid ?? '';
     final menuItems = ref.watch(menuItemsStreamProvider).value ?? [];
     
-    OrderModel? order;
+    final OrderModel order;
     try {
       order = orders.firstWhere((o) => o.id == orderId);
-    } catch (_) {}
-
-    if (order == null) {
+    } catch (_) {
       return Scaffold(
         appBar: AppBar(title: const Text("Order Not Found")),
         body: const Center(child: Text("Specified order record could not be loaded.")),
@@ -304,105 +302,168 @@ class OrderDetailView extends ConsumerWidget {
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 900),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Order Card Details left
-                Expanded(
-                  flex: 3,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 750;
+
+                final detailsCard = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text("ORDER #${order.orderId} [Token: ${order.tokenId ?? '000'}]", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                                  Text("ORDER #${order.orderId} [Token: ${order.tokenId ?? '000'}]", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
                                   const SizedBox(height: 4),
                                   Text(
                                     "Date: ${DateFormat('dd/MM/yyyy hh:mm:ss a').format(order.createdAt)}",
-                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  Text("Cashier: ${order.cashierName}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                                  Text("Cashier: ${order.cashierName}", style: const TextStyle(color: Colors.grey, fontSize: 12), overflow: TextOverflow.ellipsis),
                                 ],
                               ),
-                              StatusBadge(status: order.status),
-                            ],
-                          ),
-                          const Divider(height: 32),
-                          
-                          // Customer Card Info
-                          const Text("Customer Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                          const SizedBox(height: 8),
+                            ),
+                            const SizedBox(width: 8),
+                            StatusBadge(status: order.status),
+                          ],
+                        ),
+                        const Divider(height: 32),
+                        
+                        // Customer Card Info
+                        const Text("Customer Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.person_outline, size: 18, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text("Name: ${order.customerName}", style: const TextStyle(fontSize: 14), overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              order.orderType == "dine-in"
+                                  ? Icons.restaurant
+                                  : (order.orderType == "takeaway" ? Icons.shopping_bag : Icons.delivery_dining),
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text("Type: ${order.orderType.toUpperCase()}", style: const TextStyle(fontSize: 14)),
+                            if (order.orderType == "dine-in" && order.tableNumber != null) ...[
+                              const SizedBox(width: 16),
+                              const Icon(Icons.table_restaurant, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text("Table: ${order.tableNumber}", style: const TextStyle(fontSize: 14)),
+                            ]
+                          ],
+                        ),
+                        if (order.orderType == "delivery") ...[
+                          const SizedBox(height: 6),
                           Row(
                             children: [
-                              const Icon(Icons.person_outline, size: 18, color: Colors.grey),
+                              const Icon(Icons.phone_android, size: 18, color: Colors.grey),
                               const SizedBox(width: 8),
-                              Text("Name: ${order.customerName}", style: const TextStyle(fontSize: 14)),
+                              Text("Phone: ${order.customerPhone ?? 'N/A'}", style: const TextStyle(fontSize: 14)),
                             ],
                           ),
                           const SizedBox(height: 6),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                order.orderType == "dine-in"
-                                    ? Icons.restaurant
-                                    : (order.orderType == "takeaway" ? Icons.shopping_bag : Icons.delivery_dining),
-                                size: 18,
-                                color: Colors.grey,
-                              ),
+                              const Icon(Icons.location_on_outlined, size: 18, color: Colors.grey),
                               const SizedBox(width: 8),
-                              Text("Type: ${order.orderType.toUpperCase()}", style: const TextStyle(fontSize: 14)),
-                              if (order.orderType == "dine-in" && order.tableNumber != null) ...[
-                                const SizedBox(width: 16),
-                                const Icon(Icons.table_restaurant, size: 18, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Text("Table: ${order.tableNumber}", style: const TextStyle(fontSize: 14)),
-                              ]
+                              Expanded(
+                                child: Text(
+                                  "Address: ${order.deliveryAddress ?? 'N/A'}",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
                             ],
                           ),
-                          if (order.orderType == "delivery") ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                const Icon(Icons.phone_android, size: 18, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Text("Phone: ${order.customerPhone ?? 'N/A'}", style: const TextStyle(fontSize: 14)),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.location_on_outlined, size: 18, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "Address: ${order.deliveryAddress ?? 'N/A'}",
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          const Divider(height: 32),
+                        ],
+                        const Divider(height: 32),
 
-                          // Items List
-                          const Text("Ordered Items Summary", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        // Items List
+                        const Text("Ordered Items Summary", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        const SizedBox(height: 12),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: order!.items.length,
+                          separatorBuilder: (context, index) => const Divider(color: Colors.black12),
+                          itemBuilder: (context, idx) {
+                            final item = order!.items[idx];
+                            final inst = item.specialInstructions;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          "${item.quantity}x ${item.name}",
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "Rs. ${item.totalPrice.toStringAsFixed(2)}",
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    "Unit Price: Rs. ${item.unitPrice.toStringAsFixed(2)}",
+                                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                  if (inst != null && inst.trim().isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber.shade50,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.amber.shade200),
+                                      ),
+                                      child: Text(
+                                        "Instructions: $inst",
+                                        style: TextStyle(color: Colors.amber.shade900, fontSize: 12, fontStyle: FontStyle.italic),
+                                      ),
+                                    )
+                                  ]
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        if (order!.deals.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Text("Bundled Deals Summary", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primaryColor)),
                           const SizedBox(height: 12),
                           ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: order!.items.length,
+                            itemCount: order!.deals.length,
                             separatorBuilder: (context, index) => const Divider(color: Colors.black12),
                             itemBuilder: (context, idx) {
-                              final item = order!.items[idx];
-                              final inst = item.specialInstructions;
+                              final deal = order!.deals[idx];
+                              final List<dynamic> itemIds = deal['itemIds'] ?? [];
+                              final itemsDescription = getDealItemsDescription(itemIds, menuItems);
                               return Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 4.0),
                                 child: Column(
@@ -411,243 +472,213 @@ class OrderDetailView extends ConsumerWidget {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          "${item.quantity}x ${item.name}",
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        Expanded(
+                                          child: Text(
+                                            "1x Bundle: ${deal['name']}",
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryColor),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Text(
-                                          "Rs. ${item.totalPrice.toStringAsFixed(2)}",
+                                          "Rs. ${double.tryParse(deal['price']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}",
                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                         ),
                                       ],
                                     ),
-                                    Text(
-                                      "Unit Price: Rs. ${item.unitPrice.toStringAsFixed(2)}",
-                                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                    ),
-                                    if (inst != null && inst.trim().isNotEmpty) ...[
+                                    if (itemsDescription.isNotEmpty) ...[
                                       const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.shade50,
-                                          borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: Colors.amber.shade200),
-                                        ),
-                                        child: Text(
-                                          "Instructions: $inst",
-                                          style: TextStyle(color: Colors.amber.shade900, fontSize: 12, fontStyle: FontStyle.italic),
-                                        ),
-                                      )
-                                    ]
+                                      Text(
+                                        "Contains: $itemsDescription",
+                                        style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               );
                             },
                           ),
-                          if (order!.deals.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            const Text("Bundled Deals Summary", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primaryColor)),
-                            const SizedBox(height: 12),
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: order!.deals.length,
-                              separatorBuilder: (context, index) => const Divider(color: Colors.black12),
-                              itemBuilder: (context, idx) {
-                                final deal = order!.deals[idx];
-                                final List<dynamic> itemIds = deal['itemIds'] ?? [];
-                                final itemsDescription = getDealItemsDescription(itemIds, menuItems);
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        ],
+                        const Divider(height: 32),
+
+                        // Billing Summary
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Subtotal"),
+                            Text("Rs. ${order.subtotal.toStringAsFixed(2)}"),
+                          ],
+                        ),
+                        if (order.discountAmount > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Campaign Discounts"),
+                              Text("- Rs. ${order.discountAmount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.green)),
+                            ],
+                          ),
+                        ],
+                        if (order.tax > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Government Tax"),
+                              Text("Rs. ${order.tax.toStringAsFixed(2)}"),
+                            ],
+                          ),
+                        ],
+                        if (order.deliveryCharges > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Delivery Charges"),
+                              Text("Rs. ${order.deliveryCharges.toStringAsFixed(2)}"),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("GRAND TOTAL", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              "Rs. ${order.grandTotal.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 32),
+
+                        if (order.status == "Cancelled") ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade200),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Cancellation Log", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                const SizedBox(height: 4),
+                                Text("Reason: ${order.cancellationReason ?? 'None'}", style: TextStyle(color: Colors.red.shade800, fontSize: 13)),
+                                if (order.cancelledAt != null)
+                                  Text("Time: ${DateFormat('dd/MM/yyyy hh:mm:ss a').format(order.cancelledAt!)}", style: TextStyle(color: Colors.red.shade800, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        if (canCancel) ...[
+                          const SizedBox(height: 8),
+                          CustomButton(
+                            text: "CANCEL ORDER",
+                            color: Colors.red,
+                            onPressed: () => _onCancelOrder(context, ref, order!, currentUserId),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        if (order.isPaid) ...[
+                          CustomButton(
+                            text: "MARK AS UNPAID",
+                            color: Colors.orange,
+                            icon: Icons.money_off,
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => const ConfirmationDialog(
+                                  title: "Mark Order as Unpaid?",
+                                  message: "This will allow the cashier to edit this order.",
+                                  confirmLabel: "Mark Unpaid",
+                                ),
+                              );
+                              if (confirm == true) {
+                                try {
+                                  await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(order!.id, false, currentUserId);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Order marked as UNPAID successfully! Cashier can now edit.")),
+                                  );
+                                } catch (e) {
+                                  _showError(context, e.toString());
+                                }
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+
+                final timelineCard = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text("Status History Timeline", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        const Divider(height: 24),
+                        ...order.statusHistory.map((hist) {
+                          final date = hist['timestamp'] as DateTime;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CircleAvatar(
+                                  radius: 6,
+                                  backgroundColor: AppTheme.primaryColor,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            "1x Bundle: ${deal['name']}",
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryColor),
-                                          ),
-                                          Text(
-                                            "Rs. ${double.tryParse(deal['price']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}",
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                          ),
-                                        ],
-                                      ),
-                                      if (itemsDescription.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Contains: $itemsDescription",
-                                          style: const TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic),
-                                        ),
-                                      ],
+                                      Text(hist['status'] ?? 'Pending', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      const SizedBox(height: 2),
+                                      Text(DateFormat('dd/MM hh:mm:ss a').format(date), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                                     ],
                                   ),
-                                );
-                              },
-                            ),
-                          ],
-                          const Divider(height: 32),
-
-                          // Billing Summary
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("Subtotal"),
-                              Text("Rs. ${order.subtotal.toStringAsFixed(2)}"),
-                            ],
-                          ),
-                          if (order.discountAmount > 0) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text("Campaign Discounts"),
-                                Text("- Rs. ${order.discountAmount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.green)),
+                                )
                               ],
                             ),
-                          ],
-                          if (order.tax > 0) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text("Government Tax"),
-                                Text("Rs. ${order.tax.toStringAsFixed(2)}"),
-                              ],
-                            ),
-                          ],
-                          if (order.deliveryCharges > 0) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text("Delivery Charges"),
-                                Text("Rs. ${order.deliveryCharges.toStringAsFixed(2)}"),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("GRAND TOTAL", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text(
-                                "Rs. ${order.grandTotal.toStringAsFixed(2)}",
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 32),
-
-                          if (order.status == "Cancelled") ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red.shade200),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text("Cancellation Log", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                                  const SizedBox(height: 4),
-                                  Text("Reason: ${order.cancellationReason ?? 'None'}", style: TextStyle(color: Colors.red.shade800, fontSize: 13)),
-                                  if (order.cancelledAt != null)
-                                    Text("Time: ${DateFormat('dd/MM/yyyy hh:mm:ss a').format(order.cancelledAt!)}", style: TextStyle(color: Colors.red.shade800, fontSize: 12)),
-                                ],
-                              ),
-                            ),
-                          ],
-
-                          if (canCancel) ...[
-                            const SizedBox(height: 8),
-                            CustomButton(
-                              text: "CANCEL ORDER",
-                              color: Colors.red,
-                              onPressed: () => _onCancelOrder(context, ref, order!, currentUserId),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          if (order.isPaid) ...[
-                            CustomButton(
-                              text: "MARK AS UNPAID",
-                              color: Colors.orange,
-                              icon: Icons.money_off,
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => const ConfirmationDialog(
-                                    title: "Mark Order as Unpaid?",
-                                    message: "This will allow the cashier to edit this order.",
-                                    confirmLabel: "Mark Unpaid",
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  try {
-                                    await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(order!.id, false, currentUserId);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Order marked as UNPAID successfully! Cashier can now edit.")),
-                                    );
-                                  } catch (e) {
-                                    _showError(context, e.toString());
-                                  }
-                                }
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
+                          );
+                        }).toList(),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                // Timeline history right side card
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text("Status History Timeline", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                          const Divider(height: 24),
-                          ...order.statusHistory.map((hist) {
-                            final date = hist['timestamp'] as DateTime;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CircleAvatar(
-                                    radius: 6,
-                                    backgroundColor: AppTheme.primaryColor,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(hist['status'] ?? 'Pending', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                        const SizedBox(height: 2),
-                                        Text(DateFormat('dd/MM hh:mm:ss a').format(date), style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ],
-                      ),
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      detailsCard,
+                      const SizedBox(height: 20),
+                      timelineCard,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: detailsCard,
                     ),
-                  ),
-                )
-              ],
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: timelineCard,
+                    ),
+                  ],
+                );
+              }
             ),
           ),
         ),

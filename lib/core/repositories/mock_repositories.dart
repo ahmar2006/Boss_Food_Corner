@@ -626,6 +626,17 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
+  Stream<OrderModel?> watchOrderById(String docId) {
+    return _ordersStreamController.stream.map((list) {
+      try {
+        return list.firstWhere((o) => o.id == docId);
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  @override
   Future<OrderModel?> getOrderById(String docId) async {
     try {
       return MockDatabase.orders.firstWhere((o) => o.id == docId);

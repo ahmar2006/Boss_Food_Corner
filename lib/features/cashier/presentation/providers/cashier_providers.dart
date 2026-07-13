@@ -135,6 +135,22 @@ class CartNotifier extends Notifier<CartState> {
     }
   }
 
+  void addManualItem(String name, double price) {
+    final manualItem = MenuItemModel(
+      id: "manual_${DateTime.now().millisecondsSinceEpoch}",
+      name: name,
+      price: price,
+      categoryId: "manual",
+      description: "Manually entered custom item",
+      imageBase64: "",
+      prepTime: 0,
+      status: "active",
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    state = state.copyWith(items: [...state.items, CartItem(item: manualItem, quantity: 1)]);
+  }
+
   void addDeal(DealModel deal) {
     state = state.copyWith(deals: [...state.deals, deal]);
   }
@@ -311,9 +327,8 @@ class CartNotifier extends Notifier<CartState> {
   }
 
   void applyManualDiscount(double value) {
-    if (value <= 0) {
-      state = state.copyWith(manualDiscount: value);
-    }
+    final negativeValue = value > 0 ? -value : value;
+    state = state.copyWith(manualDiscount: negativeValue);
   }
 
   void updatePaymentDetails(double received) {
@@ -523,8 +538,8 @@ final cashierActionProvider = NotifierProvider<CashierActionNotifier, AsyncValue
   return CashierActionNotifier();
 });
 
-// Direct single-order fetch by document ID — avoids watching all orders just to display one receipt
-final singleOrderProvider = FutureProvider.family<OrderModel?, String>((ref, docId) async {
-  if (docId.isEmpty) return null;
-  return ref.watch(orderRepositoryProvider).getOrderById(docId);
+// Direct single-order fetch by document ID — watches the order in real time so status updates immediately
+final singleOrderProvider = StreamProvider.family<OrderModel?, String>((ref, docId) {
+  if (docId.isEmpty) return Stream.value(null);
+  return ref.watch(orderRepositoryProvider).watchOrderById(docId);
 });

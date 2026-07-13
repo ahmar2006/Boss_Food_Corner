@@ -76,6 +76,7 @@ abstract class OrderRepository {
   Stream<List<OrderModel>> watchAllOrders();
   Stream<List<OrderModel>> watchOrdersByCashier(String cashierId);
   Stream<List<OrderModel>> watchActiveOrders();
+  Stream<OrderModel?> watchOrderById(String docId);
   Future<OrderModel?> getOrderById(String docId);
   Future<OrderModel?> getOrderByHumanId(String orderId);
   Future<String> placeOrder(OrderModel order);

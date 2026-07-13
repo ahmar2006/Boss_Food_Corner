@@ -478,40 +478,77 @@ class _MenuListViewState extends ConsumerState<MenuListView> {
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: SearchBarWidget(
-                            placeholder: "Search menu items by name, description...",
-                            onChanged: (val) {
-                              setState(() {
-                                _searchQuery = val;
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 1,
-                          child: DropdownButtonFormField<String>(
-                            value: _categoryFilter,
-                            decoration: const InputDecoration(
-                              labelText: "Category Filter",
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            items: [
-                              const DropdownMenuItem(value: "All", child: Text("All Categories")),
-                              ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 600;
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SearchBarWidget(
+                                placeholder: "Search menu items by name, description...",
+                                onChanged: (val) {
+                                  setState(() {
+                                    _searchQuery = val;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                value: _categoryFilter,
+                                decoration: const InputDecoration(
+                                  labelText: "Category Filter",
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                items: [
+                                  const DropdownMenuItem(value: "All", child: Text("All Categories")),
+                                  ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _categoryFilter = val ?? "All";
+                                  });
+                                },
+                              ),
                             ],
-                            onChanged: (val) {
-                              setState(() {
-                                _categoryFilter = val ?? "All";
-                              });
-                            },
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: SearchBarWidget(
+                                placeholder: "Search menu items by name, description...",
+                                onChanged: (val) {
+                                  setState(() {
+                                    _searchQuery = val;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 1,
+                              child: DropdownButtonFormField<String>(
+                                value: _categoryFilter,
+                                decoration: const InputDecoration(
+                                  labelText: "Category Filter",
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                items: [
+                                  const DropdownMenuItem(value: "All", child: Text("All Categories")),
+                                  ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _categoryFilter = val ?? "All";
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      }
                     ),
                   ),
                 ),

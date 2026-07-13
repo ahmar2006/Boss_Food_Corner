@@ -16,11 +16,9 @@ void main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      // Enable Firestore offline persistence (IndexedDB cache for web)
-      // This makes ALL data screens load instantly from local cache on revisit
+      // Disable Firestore offline persistence on Web to make write/commit operations instant (under 0.5s)
       FirebaseFirestore.instance.settings = const Settings(
-        persistenceEnabled: true,
-        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        persistenceEnabled: false,
       );
       debugPrint("Firebase services initialized successfully.");
     } else {

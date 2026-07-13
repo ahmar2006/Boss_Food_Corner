@@ -258,8 +258,7 @@ class _CheckoutDiscountViewState extends ConsumerState<CheckoutDiscountView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cart = ref.read(cartProvider);
       if (cart.manualDiscount != 0.0) {
-        // Manual discount stored as positive absolute value inside cart state but entered negative
-        _manualController.text = "-${cart.manualDiscount.abs().toString()}";
+        _manualController.text = cart.manualDiscount.abs().toString();
       }
     });
   }
@@ -368,16 +367,16 @@ class _CheckoutDiscountViewState extends ConsumerState<CheckoutDiscountView> {
                       ),
                       const SizedBox(height: 6),
                       CustomTextField(
-                        label: "Manual Discount Amount (Negative Only)",
-                        placeholder: "e.g., -50, -100",
+                        label: "Manual Discount Amount",
+                        placeholder: "e.g., 50, 100",
                         controller: _manualController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (val) {
                           if (val != null && val.trim().isNotEmpty) {
                             final doubleVal = double.tryParse(val.trim());
                             if (doubleVal == null) return "Enter a valid number";
-                            if (doubleVal > 0) return "Manual discount must be a negative value (e.g. -100)";
-                            if (doubleVal.abs() > cart.itemsSubtotal) return "Discount cannot exceed subtotal";
+                            if (doubleVal < 0) return "Enter discount without a negative sign";
+                            if (doubleVal > cart.itemsSubtotal) return "Discount cannot exceed subtotal";
                           }
                           return null;
                         },

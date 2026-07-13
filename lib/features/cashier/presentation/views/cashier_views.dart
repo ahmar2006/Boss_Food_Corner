@@ -169,20 +169,10 @@ class CashierDashboardView extends ConsumerWidget {
                                 ),
                                 title: Text("Order #${ord.orderId} - ${ord.customerName}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                 subtitle: Text(
-                                  "Placed: ${DateFormat('dd/MM hh:mm a').format(ord.createdAt)} • Subtotal: Rs. ${ord.subtotal.toStringAsFixed(0)}",
+                                  "Placed: ${DateFormat('dd/MM hh:mm a').format(ord.createdAt)} • Total: Rs. ${ord.grandTotal.toStringAsFixed(2)}",
                                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                                 ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Rs. ${ord.grandTotal.toStringAsFixed(2)}",
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textColor),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    StatusBadge(status: ord.status),
-                                  ],
-                                ),
+                                trailing: StatusBadge(status: ord.status),
                                 onTap: () => context.go('/cashier/receipt/${ord.id}'),
                               );
                             },
@@ -234,6 +224,7 @@ class POSView extends ConsumerStatefulWidget {
 class _POSViewState extends ConsumerState<POSView> {
   String _selectedCatId = "All"; // All, Deals, or categoryId
   String _searchQuery = "";
+  bool _mobileShowCart = false;
 
   // Inline checkout panel state variables
   String _cartPanelMode = "cart"; // cart, customer, discount, summary, receipt
@@ -274,7 +265,7 @@ class _POSViewState extends ConsumerState<POSView> {
           });
         } else if (cart.editingOrderStatus == "Handover") {
           if (cart.manualDiscount != 0.0) {
-            _manualController.text = "-${cart.manualDiscount.abs().toString()}";
+            _manualController.text = cart.manualDiscount.abs().toString();
           } else {
             _manualController.text = "";
           }
@@ -322,7 +313,7 @@ class _POSViewState extends ConsumerState<POSView> {
 
       final cart = ref.read(cartProvider);
       if (cart.manualDiscount != 0.0) {
-        _manualController.text = "-${cart.manualDiscount.abs().toString()}";
+        _manualController.text = cart.manualDiscount.abs().toString();
       } else {
         _manualController.text = "";
       }
@@ -350,6 +341,67 @@ class _POSViewState extends ConsumerState<POSView> {
   void _showError(String err) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(err), backgroundColor: AppTheme.errorColor),
+    );
+  }
+
+  void _showAddManualItemDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final priceController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Add Custom Cart Item", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextField(
+                label: "Item Name",
+                placeholder: "e.g., Cold Drink Extra, Special Dessert",
+                controller: nameController,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return "Item name is required";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: "Price (Rs.)",
+                placeholder: "e.g., 150.00",
+                controller: priceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return "Price is required";
+                  final price = double.tryParse(val.trim());
+                  if (price == null || price < 0) return "Enter a valid positive price";
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                final name = nameController.text.trim();
+                final price = double.parse(priceController.text.trim());
+                ref.read(cartProvider.notifier).addManualItem(name, price);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("ADD TO CART", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -855,10 +907,14 @@ class _POSViewState extends ConsumerState<POSView> {
                 ),
                 const SizedBox(height: 8),
               ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.shopping_cart, color: AppTheme.primaryColor),
                       const SizedBox(width: 8),
@@ -874,11 +930,34 @@ class _POSViewState extends ConsumerState<POSView> {
                       ),
                     ],
                   ),
-                  if (!isEditingLocked && (cart.items.isNotEmpty || cart.deals.isNotEmpty))
-                    TextButton(
-                      onPressed: _onClearCart,
-                      child: const Text("Clear Cart", style: TextStyle(color: Colors.red)),
-                    )
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (!isEditingLocked)
+                        TextButton.icon(
+                          onPressed: () => _showAddManualItemDialog(context),
+                          icon: const Icon(Icons.add, size: 16, color: Colors.green),
+                          label: const Text("Custom Item", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      if (!isEditingLocked && (cart.items.isNotEmpty || cart.deals.isNotEmpty))
+                        TextButton(
+                          onPressed: _onClearCart,
+                          child: const Text("Clear Cart", style: TextStyle(color: Colors.red)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                    ],
+                  )
                 ],
               ),
               const Divider(),
@@ -1018,19 +1097,69 @@ class _POSViewState extends ConsumerState<POSView> {
         onLogout: () => ref.read(authActionProvider.notifier).logout(),
       ),
       bottomNavigationBar: _buildBottomNav(context, 1),
-      body: isDesktop
-          ? Row(
-              children: [
-                Expanded(flex: 7, child: menuPanel),
-                Expanded(flex: 4, child: cartPanel),
-              ],
-            )
-          : Column(
-              children: [
-                Expanded(flex: 3, child: menuPanel),
-                Expanded(flex: 2, child: cartPanel),
-              ],
+      body: Column(
+        children: [
+          if (!isDesktop)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Center(child: Text("1. BROWSE MENU")),
+                      selected: !_mobileShowCart,
+                      selectedColor: AppTheme.primaryColor.withOpacity(0.15),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: !_mobileShowCart ? AppTheme.primaryColor : Colors.grey,
+                      ),
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            _mobileShowCart = false;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: Center(
+                        child: Text(
+                          "2. MY CART (${cart.items.length + cart.deals.length})"
+                        ),
+                      ),
+                      selected: _mobileShowCart,
+                      selectedColor: AppTheme.primaryColor.withOpacity(0.15),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _mobileShowCart ? AppTheme.primaryColor : Colors.grey,
+                      ),
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            _mobileShowCart = true;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
+          Expanded(
+            child: isDesktop
+                ? Row(
+                    children: [
+                      Expanded(flex: 7, child: menuPanel),
+                      Expanded(flex: 4, child: cartPanel),
+                    ],
+                  )
+                : (_mobileShowCart ? cartPanel : menuPanel),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1299,16 +1428,16 @@ class _POSViewState extends ConsumerState<POSView> {
                       const Text("Add Manual Discount", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       CustomTextField(
-                        label: "Manual Discount Amount (Negative Only)",
-                        placeholder: "e.g., -50, -100",
+                        label: "Manual Discount Amount",
+                        placeholder: "e.g., 50, 100",
                         controller: _manualController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (val) {
                           if (val != null && val.trim().isNotEmpty) {
                             final doubleVal = double.tryParse(val.trim());
                             if (doubleVal == null) return "Enter a valid number";
-                            if (doubleVal > 0) return "Manual discount must be negative (e.g., -100)";
-                            if (doubleVal.abs() > cart.itemsSubtotal) return "Discount cannot exceed subtotal";
+                            if (doubleVal < 0) return "Enter discount without a negative sign";
+                            if (doubleVal > cart.itemsSubtotal) return "Discount cannot exceed subtotal";
                           }
                           return null;
                         },
@@ -1898,29 +2027,33 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Order #${ord.orderId} [Token: ${ord.tokenId ?? '000'}] - ${ord.customerName}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Type: ${ord.orderType.toUpperCase()} • Grand Total: Rs. ${ord.grandTotal.toStringAsFixed(0)}",
-                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                      ),
-                                    ],
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Order #${ord.orderId} [Token: ${ord.tokenId ?? '000'}] - ${ord.customerName}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "Type: ${ord.orderType.toUpperCase()} • Grand Total: Rs. ${ord.grandTotal.toStringAsFixed(0)}",
+                                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   StatusBadge(status: ord.status),
                                 ],
                               ),
                               const Divider(height: 24),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                alignment: WrapAlignment.end,
                                 children: [
                                   TextButton(
                                     onPressed: () => context.push('/cashier/receipt/${ord.id}'),
                                     child: const Text("View Receipt"),
                                   ),
-                                  const SizedBox(width: 8),
                                   if (!ord.isPaid) ...[
                                     TextButton.icon(
                                       onPressed: () {
@@ -1933,7 +2066,6 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                     ),
                                   ],
                                   if (isPending) ...[
-                                    const SizedBox(width: 8),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                                       onPressed: () => _onCancelOrder(context, ord, user?.uid ?? ''),
@@ -1941,7 +2073,6 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                     ),
                                   ],
                                   if (!ord.isPaid) ...[
-                                    const SizedBox(width: 8),
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                                       onPressed: () async {
@@ -1975,7 +2106,6 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                       label: const Text("Pay Bill"),
                                     ),
                                   ] else ...[
-                                    const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                       decoration: const BoxDecoration(
@@ -1993,7 +2123,6 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                     ),
                                   ],
                                   if (isReady) ...[
-                                    const SizedBox(width: 8),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                                     onPressed: () => _onCompleteOrder(context, ord, user?.uid ?? ''),
@@ -2001,7 +2130,6 @@ class _OrderTrackingViewState extends ConsumerState<OrderTrackingView> {
                                     ),
                                   ],
                                   if (isHandover) ...[
-                                    const SizedBox(width: 8),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                                       onPressed: () async {
@@ -2236,20 +2364,10 @@ class _OrderSearchViewState extends ConsumerState<OrderSearchView> {
                                 return ListTile(
                                   title: Text("Order #${ord.orderId} - ${ord.customerName}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                   subtitle: Text(
-                                    "Date: ${DateFormat('dd/MM/yyyy hh:mm a').format(ord.createdAt)} • Type: ${ord.orderType.toUpperCase()}",
+                                    "Date: ${DateFormat('dd/MM/yyyy hh:mm a').format(ord.createdAt)} • Total: Rs. ${ord.grandTotal.toStringAsFixed(2)}",
                                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                                   ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        "Rs. ${ord.grandTotal.toStringAsFixed(2)}",
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      StatusBadge(status: ord.status),
-                                    ],
-                                  ),
+                                  trailing: StatusBadge(status: ord.status),
                                   onTap: () => context.push('/cashier/receipt/${ord.id}'),
                                 );
                               },
@@ -2387,14 +2505,17 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Shift Sales Performance", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        const SizedBox(height: 4),
-                        Text("Day: ${DateFormat.yMMMMd().format(_filterDate)}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Shift Sales Performance", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18), overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 4),
+                          Text("Day: ${DateFormat.yMMMMd().format(_filterDate)}", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                       icon: const Icon(Icons.date_range),
@@ -2436,13 +2557,16 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              isClosed ? "Daily Closing Submitted" : "Daily Closing Pending",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isClosed ? Colors.green.shade900 : Colors.blue.shade900,
+                            Expanded(
+                              child: Text(
+                                isClosed ? "Daily Closing Submitted" : "Daily Closing Pending",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isClosed ? Colors.green.shade900 : Colors.blue.shade900,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 12),
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isClosed ? Colors.green : AppTheme.primaryColor,
@@ -2511,26 +2635,50 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                 const SizedBox(height: 20),
 
                 // KPI grid cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: SummaryCard(
-                        label: "NET SHIFT REVENUE",
-                        value: "Rs. ${revenue.toStringAsFixed(2)}",
-                        icon: Icons.payments,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SummaryCard(
-                        label: "SHIFTS COMPLETED",
-                        value: "${completed.length} Orders",
-                        icon: Icons.shopping_bag,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 600;
+                    if (isNarrow) {
+                      return Column(
+                        children: [
+                          SummaryCard(
+                            label: "NET SHIFT REVENUE",
+                            value: "Rs. ${revenue.toStringAsFixed(2)}",
+                            icon: Icons.payments,
+                            color: Colors.green,
+                          ),
+                          const SizedBox(height: 12),
+                          SummaryCard(
+                            label: "SHIFTS COMPLETED",
+                            value: "${completed.length} Orders",
+                            icon: Icons.shopping_bag,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: SummaryCard(
+                            label: "NET SHIFT REVENUE",
+                            value: "Rs. ${revenue.toStringAsFixed(2)}",
+                            icon: Icons.payments,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SummaryCard(
+                            label: "SHIFTS COMPLETED",
+                            value: "${completed.length} Orders",
+                            icon: Icons.shopping_bag,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
                 ),
                 const SizedBox(height: 32),
 
@@ -2570,10 +2718,14 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          "Order #${o.orderId} - ${o.customerName} (${o.orderType.toUpperCase()})",
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor),
+                                        Expanded(
+                                          child: Text(
+                                            "Order #${o.orderId} - ${o.customerName} (${o.orderType.toUpperCase()})",
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Text(
                                           timeStr,
                                           style: const TextStyle(fontSize: 11, color: Colors.grey),
@@ -2586,7 +2738,14 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text("${i.quantity}x ${i.name}", style: const TextStyle(fontSize: 12)),
+                                          Expanded(
+                                            child: Text(
+                                              "${i.quantity}x ${i.name}",
+                                              style: const TextStyle(fontSize: 12),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
                                           Text("Rs. ${i.totalPrice.toStringAsFixed(0)}", style: const TextStyle(fontSize: 12)),
                                         ],
                                       ),
@@ -2596,7 +2755,14 @@ class _CashierReportsViewState extends ConsumerState<CashierReportsView> {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text("1x Bundle: ${d['name']}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                                          Expanded(
+                                            child: Text(
+                                              "1x Bundle: ${d['name']}",
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
                                           Text("Rs. ${double.tryParse(d['price'].toString())?.toStringAsFixed(0) ?? d['price']}", style: const TextStyle(fontSize: 12)),
                                         ],
                                       ),

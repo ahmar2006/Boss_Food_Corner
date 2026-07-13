@@ -216,41 +216,79 @@ class _EmployeeListViewState extends ConsumerState<EmployeeListView> {
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: SearchBarWidget(
-                            placeholder: "Search employees by name, email or phone...",
-                            onChanged: (val) {
-                              setState(() {
-                                _searchQuery = val;
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 1,
-                          child: DropdownButtonFormField<String>(
-                            value: _roleFilter,
-                            decoration: const InputDecoration(
-                              labelText: "Role Filter",
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: "All", child: Text("All Roles")),
-                              DropdownMenuItem(value: "cashier", child: Text("Cashier")),
-                              DropdownMenuItem(value: "expediter", child: Text("Expediter")),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 600;
+                        if (isNarrow) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SearchBarWidget(
+                                placeholder: "Search employees by name, email or phone...",
+                                onChanged: (val) {
+                                  setState(() {
+                                    _searchQuery = val;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                value: _roleFilter,
+                                decoration: const InputDecoration(
+                                  labelText: "Role Filter",
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: "All", child: Text("All Roles")),
+                                  DropdownMenuItem(value: "cashier", child: Text("Cashier")),
+                                  DropdownMenuItem(value: "expediter", child: Text("Expediter")),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _roleFilter = val ?? "All";
+                                  });
+                                },
+                              ),
                             ],
-                            onChanged: (val) {
-                              setState(() {
-                                _roleFilter = val ?? "All";
-                              });
-                            },
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: SearchBarWidget(
+                                placeholder: "Search employees by name, email or phone...",
+                                onChanged: (val) {
+                                  setState(() {
+                                    _searchQuery = val;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 1,
+                              child: DropdownButtonFormField<String>(
+                                value: _roleFilter,
+                                decoration: const InputDecoration(
+                                  labelText: "Role Filter",
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: "All", child: Text("All Roles")),
+                                  DropdownMenuItem(value: "cashier", child: Text("Cashier")),
+                                  DropdownMenuItem(value: "expediter", child: Text("Expediter")),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _roleFilter = val ?? "All";
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      }
                     ),
                   ),
                 ),

@@ -750,7 +750,10 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
           style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textColor, fontSize: 14),
         ),
         const SizedBox(height: 6),
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Container(
               height: 90,
@@ -767,7 +770,6 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                     )
                   : Icon(Icons.image_outlined, color: Colors.grey.shade400, size: 36),
             ),
-            const SizedBox(width: 16),
             CustomButton(
               text: widget.label,
               onPressed: _pickImage,
@@ -775,8 +777,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
               icon: Icons.upload_file,
               isOutlined: true,
             ),
-            if (_base64String != null) ...[
-              const SizedBox(width: 8),
+            if (_base64String != null && _base64String!.isNotEmpty)
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () {
@@ -786,7 +787,6 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                   widget.onImageSelected('');
                 },
               )
-            ]
           ],
         ),
       ],
