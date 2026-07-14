@@ -96,7 +96,7 @@ class CashierDashboardView extends ConsumerWidget {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final w = constraints.maxWidth;
-                    final cross = w > 1000 ? 4 : (w > 600 ? 2 : 1);
+                    final cross = w > 900 ? 3 : (w > 600 ? 3 : 1);
                     return GridView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -104,7 +104,7 @@ class CashierDashboardView extends ConsumerWidget {
                         crossAxisCount: cross,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
-                        childAspectRatio: 2.2,
+                        childAspectRatio: w > 900 ? 3.0 : 2.2,
                       ),
                       children: [
                         SummaryCard(
@@ -124,12 +124,6 @@ class CashierDashboardView extends ConsumerWidget {
                           value: "${todayHandover.length} Unpaid Orders",
                           icon: Icons.handshake_outlined,
                           color: Colors.deepPurple,
-                        ),
-                        SummaryCard(
-                          label: "MY SHIFT SALES",
-                          value: "Rs. ${todayRevenue.toStringAsFixed(2)}",
-                          icon: Icons.monetization_on,
-                          color: Colors.blue.shade700,
                         ),
                       ],
                     );
@@ -528,6 +522,55 @@ class _POSViewState extends ConsumerState<POSView> {
         final note = controller.text.trim();
         if (note.length <= 200) {
           ref.read(cartProvider.notifier).updateSpecialInstructions(index, note);
+        } else {
+          _showError("Instructions note exceeds 200 character limit.");
+        }
+      }
+    });
+  }
+
+  void _showCartSpecialInstructions() {
+    final cart = ref.read(cartProvider);
+    final controller = TextEditingController(text: cart.specialInstructions);
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: "Order Special Instructions",
+        message: "Specify instructions for the entire order (e.g., Send extra tissues, Pack separately, etc.)",
+        inputLabel: "Order Note (max 200 chars)",
+        inputPlaceholder: "Specify order notes...",
+        inputController: controller,
+        confirmLabel: "Save Instructions",
+      ),
+    ).then((confirmed) {
+      if (confirmed == true) {
+        final note = controller.text.trim();
+        if (note.length <= 200) {
+          ref.read(cartProvider.notifier).updateCartSpecialInstructions(note);
+        } else {
+          _showError("Order instructions note exceeds 200 character limit.");
+        }
+      }
+    });
+  }
+
+  void _showDealSpecialInstructions(int index, CartDeal cartDeal) {
+    final controller = TextEditingController(text: cartDeal.specialInstructions);
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: "Special Instructions: ${cartDeal.deal.name}",
+        message: "Specify instructions for this bundle (e.g., Spicy wings, Pepsi instead of Coke, etc.)",
+        inputLabel: "Instructions Note (max 200 chars)",
+        inputPlaceholder: "Specify instructions...",
+        inputController: controller,
+        confirmLabel: "Save Notes",
+      ),
+    ).then((confirmed) {
+      if (confirmed == true) {
+        final note = controller.text.trim();
+        if (note.length <= 200) {
+          ref.read(cartProvider.notifier).updateDealSpecialInstructions(index, note);
         } else {
           _showError("Instructions note exceeds 200 character limit.");
         }
@@ -1037,19 +1080,29 @@ class _POSViewState extends ConsumerState<POSView> {
                           }),
                           // Deals
                           ...List.generate(cart.deals.length, (idx) {
-                            final deal = cart.deals[idx];
-                            final itemsDescription = getDealItemsDescription(deal.itemIds, menuItems);
+                            final cartDeal = cart.deals[idx];
+                            final dealModel = cartDeal.deal;
+                            final inst = cartDeal.specialInstructions;
+                            final itemsDescription = getDealItemsDescription(dealModel.itemIds, menuItems);
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: Text(deal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
+                              onTap: isEditingLocked ? null : () => _showDealSpecialInstructions(idx, cartDeal),
+                              title: Text(dealModel.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text("Rs. ${deal.price.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11)),
+                                  Text("Rs. ${dealModel.price.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11)),
                                   if (itemsDescription.isNotEmpty)
                                     Text(
                                       "Contains: $itemsDescription",
                                       style: const TextStyle(color: Colors.grey, fontSize: 10, fontStyle: FontStyle.italic),
+                                    ),
+                                  if (inst != null && inst.isNotEmpty)
+                                    Text(
+                                      "Note: $inst",
+                                      style: TextStyle(color: Colors.amber.shade900, fontSize: 11, fontStyle: FontStyle.italic),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                 ],
                               ),
@@ -1064,6 +1117,49 @@ class _POSViewState extends ConsumerState<POSView> {
                         ],
                       ),
               ),
+              if (cart.items.isNotEmpty || cart.deals.isNotEmpty) ...[
+                if (!isEditingLocked)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text("Cart Notes (Entire Order)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    subtitle: Text(
+                      cart.specialInstructions?.isNotEmpty == true
+                          ? cart.specialInstructions!
+                          : "Tap edit icon to add notes for the whole order...",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontStyle: cart.specialInstructions?.isNotEmpty == true ? FontStyle.normal : FontStyle.italic,
+                        color: cart.specialInstructions?.isNotEmpty == true ? Colors.amber.shade900 : Colors.grey,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(
+                        cart.specialInstructions?.isNotEmpty == true ? Icons.edit_note : Icons.add_comment_outlined,
+                        color: AppTheme.primaryColor,
+                        size: 20,
+                      ),
+                      onPressed: _showCartSpecialInstructions,
+                    ),
+                  )
+                else if (cart.specialInstructions?.isNotEmpty == true)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text("Cart Notes (Entire Order)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    subtitle: Text(
+                      cart.specialInstructions!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
               const Divider(),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1548,7 +1644,7 @@ class _POSViewState extends ConsumerState<POSView> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(child: Text("1x Deal: ${d.name}", style: const TextStyle(fontSize: 12, color: AppTheme.primaryColor), overflow: TextOverflow.ellipsis)),
+                            Expanded(child: Text("1x Deal: ${d.deal.name}", style: const TextStyle(fontSize: 12, color: AppTheme.primaryColor), overflow: TextOverflow.ellipsis)),
                             Text("Rs. ${d.price.toStringAsFixed(0)}", style: const TextStyle(fontSize: 12)),
                           ],
                         ),

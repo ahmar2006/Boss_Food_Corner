@@ -490,6 +490,7 @@ class OrderModel {
   final bool isPaid;
   final String? orderTaker;
   final String? riderName;
+  final String? specialInstructions;
 
   OrderModel({
     required this.id,
@@ -523,6 +524,7 @@ class OrderModel {
     this.isPaid = false,
     this.orderTaker = "Customer",
     this.riderName,
+    this.specialInstructions,
   });
 
   OrderModel copyWith({
@@ -557,6 +559,7 @@ class OrderModel {
     bool? isPaid,
     String? orderTaker,
     String? riderName,
+    String? specialInstructions,
   }) {
     return OrderModel(
       id: id ?? this.id,
@@ -590,6 +593,7 @@ class OrderModel {
       isPaid: isPaid ?? this.isPaid,
       orderTaker: orderTaker ?? this.orderTaker,
       riderName: riderName ?? this.riderName,
+      specialInstructions: specialInstructions ?? this.specialInstructions,
     );
   }
 
@@ -630,6 +634,7 @@ class OrderModel {
       'isPaid': isPaid,
       'orderTaker': orderTaker,
       'riderName': riderName,
+      'specialInstructions': specialInstructions,
     };
   }
 
@@ -673,6 +678,7 @@ class OrderModel {
       isPaid: map['isPaid'] ?? false,
       orderTaker: map['orderTaker'] ?? 'Customer',
       riderName: map['riderName'],
+      specialInstructions: map['specialInstructions'],
     );
   }
 }

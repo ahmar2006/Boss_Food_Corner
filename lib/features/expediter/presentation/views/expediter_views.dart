@@ -293,7 +293,7 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
         maxCrossAxisExtent: 380,
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
-        mainAxisExtent: 320,
+        mainAxisExtent: 380,
       ),
       itemCount: orders.length,
       itemBuilder: (context, idx) {
@@ -313,9 +313,12 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
           color: cardColor,
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => context.go('/expediter/orders/${ord.id}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               // Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -422,6 +425,14 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
                                           style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic),
                                         ),
                                       ),
+                                    if (d['specialInstructions'] != null && d['specialInstructions'].toString().trim().isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2.0),
+                                        child: Text(
+                                          "Note: ${d['specialInstructions']}",
+                                          style: const TextStyle(fontSize: 11, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -429,6 +440,22 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
                           ),
                         );
                       }),
+                      if (ord.specialInstructions != null && ord.specialInstructions!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Text(
+                            "Order Note: ${ord.specialInstructions}",
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -456,10 +483,11 @@ class _OrderQueueViewState extends ConsumerState<OrderQueueView> with SingleTick
               ),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildQueueList(List<OrderModel> orders, String emptyMsg, bool applyColorCoding) {
     if (orders.isEmpty) {
@@ -632,6 +660,26 @@ class ExpediterOrderDetailView extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text("Customer: ${order.customerName}", style: const TextStyle(fontSize: 14)),
                     Text("Type: ${order.orderType.toUpperCase()}", style: const TextStyle(fontSize: 14)),
+                    if (order.specialInstructions != null && order.specialInstructions!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.orange.shade200, width: 1.5),
+                        ),
+                        child: Text(
+                          "ORDER NOTES: ${order.specialInstructions}",
+                          style: TextStyle(
+                            color: Colors.orange.shade900,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
                     const Divider(height: 32),
 
                     // Item list
@@ -715,6 +763,26 @@ class ExpediterOrderDetailView extends ConsumerWidget {
                                       "PREPARE ITEMS: $itemsDescription",
                                       style: TextStyle(
                                         color: Colors.blue.shade900,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (deal['specialInstructions'] != null && deal['specialInstructions'].toString().trim().isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: Colors.amber.shade200, width: 1.5),
+                                    ),
+                                    child: Text(
+                                      "DEAL WARNING: ${deal['specialInstructions']}",
+                                      style: TextStyle(
+                                        color: Colors.amber.shade900,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
                                       ),

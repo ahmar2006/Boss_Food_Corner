@@ -956,7 +956,6 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
         <tr>
           <td style="padding: 4px 0; vertical-align: top;">
             ${item.name}
-            ${(item.specialInstructions != null && item.specialInstructions!.trim().isNotEmpty) ? '<br><small style="color:#555; font-style:italic;">(* ${item.specialInstructions})</small>' : ''}
           </td>
           <td style="text-align: center; padding: 4px 0; vertical-align: top;">${item.quantity}</td>
           <td style="text-align: right; padding: 4px 0; vertical-align: top;">${item.unitPrice.toStringAsFixed(0)}</td>
@@ -1496,19 +1495,11 @@ class ReceiptPreviewWidget extends StatelessWidget {
                   Padding(padding: EdgeInsets.symmetric(vertical: 4.0), child: Text("Total", textAlign: TextAlign.right, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black))),
                 ],
               ),
-              // Body Rows
               ...order.items.map((item) => TableRow(
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.name, style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),
-                        if (item.specialInstructions != null && item.specialInstructions!.trim().isNotEmpty)
-                          Text("(* ${item.specialInstructions})", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 9, color: Colors.grey, fontStyle: FontStyle.italic)),
-                      ],
-                    ),
+                    child: Text(item.name, style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),
                   ),
                   Padding(padding: const EdgeInsets.symmetric(vertical: 4.0), child: Text("${item.quantity}", textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black))),
                   Padding(padding: const EdgeInsets.symmetric(vertical: 4.0), child: Text("${item.unitPrice.toStringAsFixed(0)}", textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black))),
@@ -1555,7 +1546,6 @@ class ReceiptPreviewWidget extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
           const Text("Thank You!", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
           const Text("Please Visit Again", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
           const Divider(color: Colors.black, thickness: 1),

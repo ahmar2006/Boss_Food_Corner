@@ -33,9 +33,31 @@ class CartItem {
   double get totalPrice => (selectedVariant?.price ?? item.price) * quantity;
 }
 
+class CartDeal {
+  final DealModel deal;
+  final String? specialInstructions;
+
+  CartDeal({
+    required this.deal,
+    this.specialInstructions,
+  });
+
+  CartDeal copyWith({
+    DealModel? deal,
+    String? specialInstructions,
+  }) {
+    return CartDeal(
+      deal: deal ?? this.deal,
+      specialInstructions: specialInstructions ?? this.specialInstructions,
+    );
+  }
+
+  double get price => deal.price;
+}
+
 class CartState {
   final List<CartItem> items;
-  final List<DealModel> deals;
+  final List<CartDeal> deals;
   final String customerName;
   final String orderType; // "dine-in", "takeaway", "delivery"
   final String? tableNumber;
@@ -49,6 +71,7 @@ class CartState {
   final String? editingOrderHumanId;
   final bool editingOrderIsPaid;
   final String orderTaker;
+  final String? specialInstructions; // Order level instructions
 
   CartState({
     this.items = const [],
@@ -66,11 +89,12 @@ class CartState {
     this.editingOrderHumanId,
     this.editingOrderIsPaid = false,
     this.orderTaker = "Customer",
+    this.specialInstructions = "",
   });
 
   CartState copyWith({
     List<CartItem>? items,
-    List<DealModel>? deals,
+    List<CartDeal>? deals,
     String? customerName,
     String? orderType,
     String? tableNumber,
@@ -86,6 +110,7 @@ class CartState {
     String? editingOrderHumanId,
     bool? editingOrderIsPaid,
     String? orderTaker,
+    String? specialInstructions,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -103,6 +128,7 @@ class CartState {
       editingOrderHumanId: clearEditingOrder ? null : (editingOrderHumanId ?? this.editingOrderHumanId),
       editingOrderIsPaid: clearEditingOrder ? false : (editingOrderIsPaid ?? this.editingOrderIsPaid),
       orderTaker: orderTaker ?? this.orderTaker,
+      specialInstructions: specialInstructions ?? this.specialInstructions,
     );
   }
 
@@ -152,13 +178,21 @@ class CartNotifier extends Notifier<CartState> {
   }
 
   void addDeal(DealModel deal) {
-    state = state.copyWith(deals: [...state.deals, deal]);
+    state = state.copyWith(deals: [...state.deals, CartDeal(deal: deal)]);
   }
 
   void removeDeal(int index) {
-    final list = List<DealModel>.from(state.deals);
+    final list = List<CartDeal>.from(state.deals);
     if (index >= 0 && index < list.length) {
       list.removeAt(index);
+      state = state.copyWith(deals: list);
+    }
+  }
+
+  void updateDealSpecialInstructions(int index, String instructions) {
+    if (index >= 0 && index < state.deals.length) {
+      final list = List<CartDeal>.from(state.deals);
+      list[index] = list[index].copyWith(specialInstructions: instructions);
       state = state.copyWith(deals: list);
     }
   }
@@ -201,6 +235,10 @@ class CartNotifier extends Notifier<CartState> {
       list[index] = list[index].copyWith(specialInstructions: instructions);
       state = state.copyWith(items: list);
     }
+  }
+
+  void updateCartSpecialInstructions(String instructions) {
+    state = state.copyWith(specialInstructions: instructions);
   }
 
   void clearCart() {
@@ -256,17 +294,20 @@ class CartNotifier extends Notifier<CartState> {
       ));
     }
 
-    final List<DealModel> cartDeals = [];
+    final List<CartDeal> cartDeals = [];
     for (var d in order.deals) {
-      cartDeals.add(DealModel(
-        id: d['dealId'] ?? '',
-        name: d['name'] ?? '',
-        price: double.tryParse(d['price']?.toString() ?? '0') ?? 0.0,
-        itemIds: List<String>.from(d['itemIds'] ?? []),
-        imageBase64: '',
-        status: 'active',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+      cartDeals.add(CartDeal(
+        deal: DealModel(
+          id: d['dealId'] ?? '',
+          name: d['name'] ?? '',
+          price: double.tryParse(d['price']?.toString() ?? '0') ?? 0.0,
+          itemIds: List<String>.from(d['itemIds'] ?? []),
+          imageBase64: '',
+          status: 'active',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+        specialInstructions: d['specialInstructions'],
       ));
     }
 
@@ -297,6 +338,7 @@ class CartNotifier extends Notifier<CartState> {
       editingOrderHumanId: order.orderId,
       editingOrderIsPaid: order.isPaid,
       orderTaker: order.orderTaker ?? 'Customer',
+      specialInstructions: order.specialInstructions ?? '',
     );
   }
 
@@ -396,10 +438,11 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
 
       final List<dynamic> deals = cart.deals.map((d) {
         return {
-          'dealId': d.id,
-          'name': d.name,
-          'price': d.price,
-          'itemIds': d.itemIds,
+          'dealId': d.deal.id,
+          'name': d.deal.name,
+          'price': d.deal.price,
+          'itemIds': d.deal.itemIds,
+          'specialInstructions': d.specialInstructions,
         };
       }).toList();
 
@@ -488,6 +531,7 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
           orderTaker: cart.orderTaker,
           riderName: existing.riderName,
           isPaid: existing.isPaid,
+          specialInstructions: cart.specialInstructions,
         );
 
         await ref.read(orderRepositoryProvider).updateOrderDetails(updatedOrder);
@@ -519,6 +563,7 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
           orderTaker: cart.orderTaker,
+          specialInstructions: cart.specialInstructions,
         );
         orderDocId = await ref.read(orderRepositoryProvider).placeOrder(newOrder);
       }

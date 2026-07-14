@@ -400,10 +400,10 @@ class OrderDetailView extends ConsumerWidget {
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: order!.items.length,
+                          itemCount: order.items.length,
                           separatorBuilder: (context, index) => const Divider(color: Colors.black12),
                           itemBuilder: (context, idx) {
-                            final item = order!.items[idx];
+                            final item = order.items[idx];
                             final inst = item.specialInstructions;
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -451,17 +451,17 @@ class OrderDetailView extends ConsumerWidget {
                             );
                           },
                         ),
-                        if (order!.deals.isNotEmpty) ...[
+                        if (order.deals.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           const Text("Bundled Deals Summary", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primaryColor)),
                           const SizedBox(height: 12),
                           ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: order!.deals.length,
+                            itemCount: order.deals.length,
                             separatorBuilder: (context, index) => const Divider(color: Colors.black12),
                             itemBuilder: (context, idx) {
-                              final deal = order!.deals[idx];
+                              final deal = order.deals[idx];
                               final List<dynamic> itemIds = deal['itemIds'] ?? [];
                               final itemsDescription = getDealItemsDescription(itemIds, menuItems);
                               return Padding(
@@ -578,7 +578,7 @@ class OrderDetailView extends ConsumerWidget {
                           CustomButton(
                             text: "CANCEL ORDER",
                             color: Colors.red,
-                            onPressed: () => _onCancelOrder(context, ref, order!, currentUserId),
+                            onPressed: () => _onCancelOrder(context, ref, order, currentUserId),
                           ),
                         ],
                         const SizedBox(height: 8),
@@ -598,7 +598,7 @@ class OrderDetailView extends ConsumerWidget {
                               );
                               if (confirm == true) {
                                 try {
-                                  await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(order!.id, false, currentUserId);
+                                  await ref.read(orderRepositoryProvider).updateOrderPaymentStatus(order.id, false, currentUserId);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text("Order marked as UNPAID successfully! Cashier can now edit.")),
                                   );

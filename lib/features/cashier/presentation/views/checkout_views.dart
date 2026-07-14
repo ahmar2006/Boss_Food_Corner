@@ -536,6 +536,10 @@ class _CheckoutSummaryViewState extends ConsumerState<CheckoutSummaryView> {
                                 Text("Phone: ${cart.customerPhone}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                                 Text("Address: ${cart.deliveryAddress}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                               ],
+                              if (cart.specialInstructions?.isNotEmpty == true) ...[
+                                const SizedBox(height: 4),
+                                Text("Order Notes: ${cart.specialInstructions}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber.shade900)),
+                              ],
                             ],
                           ),
                         ),
@@ -548,11 +552,24 @@ class _CheckoutSummaryViewState extends ConsumerState<CheckoutSummaryView> {
                             final item = cart.items[idx];
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text("${item.quantity}x ${item.item.name}", style: const TextStyle(fontSize: 13)),
-                                  Text("Rs. ${item.totalPrice.toStringAsFixed(2)}"),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text("${item.quantity}x ${item.item.name}", style: const TextStyle(fontSize: 13)),
+                                      Text("Rs. ${item.totalPrice.toStringAsFixed(2)}"),
+                                    ],
+                                  ),
+                                  if (item.specialInstructions?.isNotEmpty == true)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+                                      child: Text(
+                                        "Note: ${item.specialInstructions}",
+                                        style: TextStyle(color: Colors.amber.shade900, fontSize: 11, fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
                                 ],
                               ),
                             );
@@ -563,8 +580,9 @@ class _CheckoutSummaryViewState extends ConsumerState<CheckoutSummaryView> {
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: cart.deals.length,
                           itemBuilder: (context, idx) {
-                            final deal = cart.deals[idx];
-                            final itemsDescription = getDealItemsDescription(deal.itemIds, menuItems);
+                            final cartDeal = cart.deals[idx];
+                            final dealModel = cartDeal.deal;
+                            final itemsDescription = getDealItemsDescription(dealModel.itemIds, menuItems);
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4.0),
                               child: Column(
@@ -573,8 +591,8 @@ class _CheckoutSummaryViewState extends ConsumerState<CheckoutSummaryView> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("1x Bundle: ${deal.name}", style: const TextStyle(fontSize: 13, color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
-                                      Text("Rs. ${deal.price.toStringAsFixed(2)}"),
+                                      Text("1x Bundle: ${dealModel.name}", style: const TextStyle(fontSize: 13, color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+                                      Text("Rs. ${dealModel.price.toStringAsFixed(2)}"),
                                     ],
                                   ),
                                   if (itemsDescription.isNotEmpty)
@@ -583,6 +601,14 @@ class _CheckoutSummaryViewState extends ConsumerState<CheckoutSummaryView> {
                                       child: Text(
                                         "Contains: $itemsDescription",
                                         style: const TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
+                                  if (cartDeal.specialInstructions?.isNotEmpty == true)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+                                      child: Text(
+                                        "Note: ${cartDeal.specialInstructions}",
+                                        style: TextStyle(color: Colors.amber.shade900, fontSize: 11, fontStyle: FontStyle.italic),
                                       ),
                                     ),
                                 ],
