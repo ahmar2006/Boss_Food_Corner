@@ -31,6 +31,47 @@ void main() async {
   // Pre-load receipt logo into memory as base64 so print is instant
   await preloadReceiptLogo();
 
+  // Override default Flutter error widget to show a beautiful fallback screen instead of the red screen of death
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    final bool isNetworkError = details.exception.toString().toLowerCase().contains('network') ||
+        details.exception.toString().toLowerCase().contains('internet') ||
+        details.exception.toString().toLowerCase().contains('connection') ||
+        details.exception.toString().toLowerCase().contains('socketexception') ||
+        details.exception.toString().toLowerCase().contains('unavailable') ||
+        details.exception.toString().toLowerCase().contains('failed host lookup');
+
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isNetworkError ? Icons.wifi_off : Icons.error_outline,
+                color: isNetworkError ? Colors.orange : Colors.red,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isNetworkError ? "No Internet Connection" : "An Error Occurred",
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textColor),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isNetworkError 
+                  ? "Please check your internet connection and try again."
+                  : details.exception.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   runApp(
     const ProviderScope(
       child: BossFoodCornerApp(),

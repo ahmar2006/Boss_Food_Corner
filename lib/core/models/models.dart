@@ -792,7 +792,7 @@ class DailyClosingModel {
   final String id; // format: "YYYY-MM-DD"
   final double cashAmount;
   final double onlineAmount;
-  final double cardAmount;
+  final double cardAmount; // Repurposed/Used for Today Expense from all sides
   final int totalPunchOrders;
   final int cancelledOrders;
   final int totalConfirmedOrders;

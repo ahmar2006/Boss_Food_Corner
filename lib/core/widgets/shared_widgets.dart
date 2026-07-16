@@ -415,22 +415,33 @@ class CustomErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isNetworkError = message.toLowerCase().contains('network') ||
+        message.toLowerCase().contains('internet') ||
+        message.toLowerCase().contains('connection') ||
+        message.toLowerCase().contains('socketexception') ||
+        message.toLowerCase().contains('unavailable') ||
+        message.toLowerCase().contains('failed host lookup');
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: AppTheme.errorColor, size: 48),
+            Icon(
+              isNetworkError ? Icons.wifi_off : Icons.error_outline,
+              color: isNetworkError ? Colors.orange : AppTheme.errorColor,
+              size: 48,
+            ),
             const SizedBox(height: 16),
-            const Text(
-              "Something Went Wrong",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textColor),
+            Text(
+              isNetworkError ? "No Internet Connection" : "Something Went Wrong",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textColor),
             ),
             const SizedBox(height: 8),
             Text(
-              message,
-              textAlign: .center,
+              isNetworkError ? "Please check your connection and try again." : message,
+              textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             ),
             if (onRetry != null) ...[
@@ -1299,7 +1310,6 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
                <td style="text-align: right; padding: 4px 0;">Rs. ${closing.totalTodayRevenue.toStringAsFixed(2)}</td>
              </tr>
            </table>
-           
            <div class="divider"></div>
            
            <table style="width: 100%; font-size: 9pt;">
@@ -1312,12 +1322,16 @@ void triggerClosingPrint(BuildContext context, DailyClosingModel closing) {
                <td style="text-align: right; padding: 2px 0; font-weight: bold;">Rs. ${closing.onlineAmount.toStringAsFixed(2)}</td>
              </tr>
              <tr>
-               <td style="padding: 2px 0;">Card Payment</td>
-               <td style="text-align: right; padding: 2px 0; font-weight: bold;">Rs. ${closing.cardAmount.toStringAsFixed(2)}</td>
+               <td style="padding: 2px 0;">Today Expense</td>
+               <td style="text-align: right; padding: 2px 0; font-weight: bold; color: red;">Rs. ${closing.cardAmount.toStringAsFixed(2)}</td>
+             </tr>
+             <tr style="font-weight: bold; border-top: 1px dashed #000;">
+               <td style="padding: 4px 0;">Total Received (Cash + Online)</td>
+               <td style="text-align: right; padding: 4px 0;">Rs. ${(closing.cashAmount + closing.onlineAmount).toStringAsFixed(2)}</td>
              </tr>
              <tr style="font-weight: bold; border-top: 1px solid #000;">
-               <td style="padding: 4px 0;">Total Received Amount</td>
-               <td style="text-align: right; padding: 4px 0;">Rs. ${(closing.cashAmount + closing.onlineAmount + closing.cardAmount).toStringAsFixed(2)}</td>
+               <td style="padding: 4px 0;">Net Balance</td>
+               <td style="text-align: right; padding: 4px 0;">Rs. ${(closing.cashAmount + closing.onlineAmount - closing.cardAmount).toStringAsFixed(2)}</td>
              </tr>
            </table>
            

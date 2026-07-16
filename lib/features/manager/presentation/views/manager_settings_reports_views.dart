@@ -265,6 +265,13 @@ class ManagerDashboardView extends ConsumerWidget {
                       color: Colors.grey.shade800,
                       onPressed: () => context.go('/manager/settings'),
                     ),
+                    _buildQuickActionButton(
+                      context,
+                      label: "Daily Sales Details",
+                      icon: Icons.summarize,
+                      color: Colors.amber.shade900,
+                      onPressed: () => context.go('/manager/daily-details'),
+                    ),
                   ],
                 ),
               ],

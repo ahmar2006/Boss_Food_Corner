@@ -613,15 +613,18 @@ class _POSViewState extends ConsumerState<POSView> {
 
     // Filter menu items by search and category selection
     final List<dynamic> filteredItems = [];
+    final sortedMenuItems = List<MenuItemModel>.from(activeMenuItems)
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
     if (_selectedCatId == "All") {
-      filteredItems.addAll(activeMenuItems.where((item) {
+      filteredItems.addAll(sortedMenuItems.where((item) {
         return item.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }));
       filteredItems.addAll(activeDeals.where((deal) {
         return deal.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }));
     } else {
-      filteredItems.addAll(activeMenuItems.where((item) {
+      filteredItems.addAll(sortedMenuItems.where((item) {
         final matchesQuery = item.name.toLowerCase().contains(_searchQuery.toLowerCase());
         final matchesCat = item.categoryId == _selectedCatId;
         return matchesQuery && matchesCat;
@@ -3315,13 +3318,13 @@ class _AddDailyClosingDialogState extends State<AddDailyClosingDialog> {
               ),
               const SizedBox(height: 16),
               CustomTextField(
-                label: "Card Payment (Rs.)",
+                label: "Today Expense (Rs.)",
                 placeholder: "e.g., 2500",
                 controller: _cardController,
-                prefixIcon: Icons.credit_card,
+                prefixIcon: Icons.shopping_bag,
                 keyboardType: TextInputType.number,
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return "Card amount is required";
+                  if (val == null || val.trim().isEmpty) return "Expense amount is required";
                   if (double.tryParse(val) == null || double.parse(val) < 0) return "Enter a valid amount";
                   return null;
                 },
@@ -3365,7 +3368,8 @@ class ViewDailyClosingDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double totalReceived = closing.cashAmount + closing.onlineAmount + closing.cardAmount;
+    final double totalReceived = closing.cashAmount + closing.onlineAmount;
+    final double netBalance = totalReceived - closing.cardAmount;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -3410,13 +3414,17 @@ class ViewDailyClosingDialog extends StatelessWidget {
               trailing: Text("Rs. ${closing.onlineAmount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             ListTile(
-              title: const Text("Card Payment"),
-              trailing: Text("Rs. ${closing.cardAmount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text("Today Expense"),
+              trailing: Text("Rs. ${closing.cardAmount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
             ),
             const Divider(),
             ListTile(
-              title: const Text("Total Received Amount"),
-              trailing: Text("Rs. ${totalReceived.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+              title: const Text("Total Received (Cash + Online)"),
+              trailing: Text("Rs. ${totalReceived.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            ),
+            ListTile(
+              title: const Text("Net Balance"),
+              trailing: Text("Rs. ${netBalance.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
             ),
           ],
         ),

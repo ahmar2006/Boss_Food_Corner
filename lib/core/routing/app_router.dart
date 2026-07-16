@@ -14,6 +14,7 @@ import '../../features/cashier/presentation/views/checkout_views.dart';
 import '../../features/expediter/presentation/views/expediter_views.dart';
 import '../../features/manager/presentation/views/waiter_views.dart';
 import '../../features/manager/presentation/views/rider_views.dart';
+import '../../features/manager/presentation/views/daily_details_views.dart';
 import '../repositories/repositories.dart';
 
 // Stream listener to refresh GoRouter on auth state changes
@@ -223,6 +224,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/manager/profile',
         builder: (context, state) => const ProfileView(),
+      ),
+      GoRoute(
+        path: '/manager/daily-details',
+        builder: (context, state) => const DailyDetailsView(),
       ),
 
       // CASHIER ROUTES
