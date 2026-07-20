@@ -529,7 +529,7 @@ class OrderDetailView extends ConsumerWidget {
                             ],
                           ),
                         ],
-                        if (order.deliveryCharges > 0) ...[
+                        if (order.orderType == "delivery") ...[
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

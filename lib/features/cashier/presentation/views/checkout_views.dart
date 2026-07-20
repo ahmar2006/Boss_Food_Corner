@@ -71,6 +71,7 @@ class _CheckoutCustomerViewState extends ConsumerState<CheckoutCustomerView> {
   final _tableController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _deliveryController = TextEditingController();
 
   String _orderType = "dine-in"; // dine-in, takeaway, delivery
 
@@ -84,6 +85,9 @@ class _CheckoutCustomerViewState extends ConsumerState<CheckoutCustomerView> {
       _tableController.text = cart.tableNumber ?? '';
       _addressController.text = cart.deliveryAddress ?? '';
       _phoneController.text = cart.customerPhone ?? '';
+      final settings = ref.read(settingsStreamProvider).value;
+      final defaultDelivery = settings?.deliveryCharges ?? 0.0;
+      _deliveryController.text = (cart.customDeliveryCharges ?? defaultDelivery).toStringAsFixed(0);
       setState(() {});
     });
   }
@@ -94,18 +98,24 @@ class _CheckoutCustomerViewState extends ConsumerState<CheckoutCustomerView> {
     _tableController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    _deliveryController.dispose();
     super.dispose();
   }
 
   void _onNext() {
     if (_formKey.currentState!.validate()) {
       final enteredName = _nameController.text.trim();
+      double? customDelivery;
+      if (_orderType == "delivery") {
+        customDelivery = double.tryParse(_deliveryController.text.trim()) ?? 0.0;
+      }
       ref.read(cartProvider.notifier).updateCustomerDetails(
             name: enteredName.isNotEmpty ? enteredName : "Walk-in Customer",
             type: _orderType,
             table: _orderType == "dine-in" ? _tableController.text.trim() : null,
             address: _orderType == "delivery" ? _addressController.text.trim() : null,
             phone: _orderType == "delivery" ? _phoneController.text.trim() : null,
+            deliveryCharges: customDelivery,
           );
       context.go('/cashier/checkout/discount');
     }
@@ -211,6 +221,22 @@ class _CheckoutCustomerViewState extends ConsumerState<CheckoutCustomerView> {
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) return "Delivery address is required";
                             if (val.trim().length < 10) return "Provide a complete address (min 10 characters)";
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: "Delivery Charges (Rs.) (Optional)",
+                          placeholder: "e.g., 50",
+                          controller: _deliveryController,
+                          prefixIcon: Icons.delivery_dining,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (val) {
+                            if (val != null && val.trim().isNotEmpty) {
+                              if (double.tryParse(val.trim()) == null || double.parse(val.trim()) < 0) {
+                                return "Enter a valid amount";
+                              }
+                            }
                             return null;
                           },
                         ),
@@ -320,22 +346,56 @@ class _CheckoutDiscountViewState extends ConsumerState<CheckoutDiscountView> {
                         loading: () => const LinearProgressIndicator(color: AppTheme.primaryColor),
                         error: (err, _) => Text("Failed to load campaign discounts: $err", style: const TextStyle(color: Colors.red)),
                         data: (discounts) {
-                          if (discounts.isEmpty) {
-                            return const Text("No  discounts configured.", style: TextStyle(color: Colors.grey, fontSize: 13));
-                          }
-                          return Column(
-                            children: discounts.map((d) {
-                              final isSelected = cart.appliedManagerDiscount?.id == d.id;
-                              final isPerc = d.type == "percentage";
-                              return Card(
-                                color: isSelected ? AppTheme.primaryColor.withOpacity(0.08) : Colors.white,
+                          final List<Widget> discountCards = [];
+                          
+                          if (cart.appliedManagerDiscount != null) {
+                            discountCards.add(
+                              Card(
+                                color: Colors.red.shade50,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   side: BorderSide(
-                                    color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+                                    color: Colors.red.shade300,
                                     width: 1.5,
                                   ),
                                 ),
+                                child: ListTile(
+                                  title: Text(
+                                    "Clear Campaign Discount (${cart.appliedManagerDiscount!.name})",
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.red.shade700),
+                                  ),
+                                  trailing: Text(
+                                    cart.appliedManagerDiscount!.type == "percentage"
+                                        ? "${cart.appliedManagerDiscount!.value.toStringAsFixed(0)}%"
+                                        : "Rs. ${cart.appliedManagerDiscount!.value.toStringAsFixed(0)}",
+                                    style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold, fontSize: 15),
+                                  ),
+                                  leading: Icon(Icons.cancel, color: Colors.red.shade700),
+                                  onTap: () {
+                                    ref.read(cartProvider.notifier).removeManagerDiscount();
+                                  },
+                                ),
+                              ),
+                            );
+                            discountCards.add(const SizedBox(height: 12));
+                          }
+
+                          if (discounts.isEmpty && cart.appliedManagerDiscount == null) {
+                            return const Text("No discounts configured.", style: TextStyle(color: Colors.grey, fontSize: 13));
+                          }
+
+                          discountCards.addAll(discounts.map((d) {
+                            final isSelected = cart.appliedManagerDiscount?.id == d.id;
+                            final isPerc = d.type == "percentage";
+                            return Card(
+                              color: isSelected ? AppTheme.primaryColor.withOpacity(0.08) : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+                                  width: 1.5,
+                                ),
+                              ),
                                 child: ListTile(
                                   title: Text(d.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                   trailing: Text(
@@ -355,8 +415,8 @@ class _CheckoutDiscountViewState extends ConsumerState<CheckoutDiscountView> {
                                   },
                                 ),
                               );
-                            }).toList(),
-                          );
+                            }).toList());
+                          return Column(children: discountCards);
                         },
                       ),
                       const Divider(height: 32),
@@ -489,7 +549,7 @@ class _CheckoutSummaryViewState extends ConsumerState<CheckoutSummaryView> {
     if (baseForTax < 0) baseForTax = 0;
 
     double tax = baseForTax * (settings.taxRate / 100);
-    double delivery = cart.orderType == "delivery" ? settings.deliveryCharges : 0.0;
+    double delivery = cart.orderType == "delivery" ? (cart.customDeliveryCharges ?? settings.deliveryCharges) : 0.0;
     double grandTotal = baseForTax + tax + delivery;
 
 

@@ -357,9 +357,9 @@ class SettingsView extends ConsumerStatefulWidget {
 class _SettingsViewState extends ConsumerState<SettingsView> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
-  final _deliveryController = TextEditingController();
   final _taxController = TextEditingController();
   final _passwordController = TextEditingController();
+  double _deliveryCharges = 0.0;
 
   @override
   void initState() {
@@ -370,7 +370,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   @override
   void dispose() {
     _phoneController.dispose();
-    _deliveryController.dispose();
     _taxController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -379,7 +378,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   void _loadSettings() async {
     final settings = await ref.read(settingsRepositoryProvider).getSettings();
     _phoneController.text = settings.phoneNumber;
-    _deliveryController.text = settings.deliveryCharges.toString();
+    _deliveryCharges = settings.deliveryCharges;
     _taxController.text = settings.taxRate.toString();
     _passwordController.text = settings.cashierReportPassword;
   }
@@ -398,14 +397,13 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   void _onSave() async {
     if (_formKey.currentState!.validate()) {
       final phone = _phoneController.text.trim();
-      final del = double.parse(_deliveryController.text);
       final tax = double.parse(_taxController.text);
       final pass = _passwordController.text.trim();
 
       final settings = SettingsModel(
         id: "default",
         phoneNumber: phone,
-        deliveryCharges: del,
+        deliveryCharges: _deliveryCharges,
         taxRate: tax,
         updatedAt: DateTime.now(),
         cashierReportPassword: pass,
@@ -465,20 +463,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       ),
                       const SizedBox(height: 20),
 
-                      CustomTextField(
-                        label: "Delivery Charges (Rs.)",
-                        placeholder: "e.g., 50.00",
-                        controller: _deliveryController,
-                        prefixIcon: Icons.delivery_dining,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) return "Delivery charges are required";
-                          final doubleVal = double.tryParse(val);
-                          if (doubleVal == null || doubleVal < 0) return "Must be at least 0";
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
                       CustomTextField(
                         label: "Tax Rate (%)",
                         placeholder: "e.g., 5.0",

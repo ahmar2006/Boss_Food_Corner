@@ -72,6 +72,7 @@ class CartState {
   final bool editingOrderIsPaid;
   final String orderTaker;
   final String? specialInstructions; // Order level instructions
+  final double? customDeliveryCharges;
 
   CartState({
     this.items = const [],
@@ -90,6 +91,7 @@ class CartState {
     this.editingOrderIsPaid = false,
     this.orderTaker = "Customer",
     this.specialInstructions = "",
+    this.customDeliveryCharges,
   });
 
   CartState copyWith({
@@ -111,6 +113,7 @@ class CartState {
     bool? editingOrderIsPaid,
     String? orderTaker,
     String? specialInstructions,
+    double? customDeliveryCharges,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -129,6 +132,7 @@ class CartState {
       editingOrderIsPaid: clearEditingOrder ? false : (editingOrderIsPaid ?? this.editingOrderIsPaid),
       orderTaker: orderTaker ?? this.orderTaker,
       specialInstructions: specialInstructions ?? this.specialInstructions,
+      customDeliveryCharges: customDeliveryCharges ?? this.customDeliveryCharges,
     );
   }
 
@@ -339,6 +343,7 @@ class CartNotifier extends Notifier<CartState> {
       editingOrderIsPaid: order.isPaid,
       orderTaker: order.orderTaker ?? 'Customer',
       specialInstructions: order.specialInstructions ?? '',
+      customDeliveryCharges: order.orderType == "delivery" ? order.deliveryCharges : null,
     );
   }
 
@@ -349,6 +354,7 @@ class CartNotifier extends Notifier<CartState> {
     String? address,
     String? phone,
     String? orderTaker,
+    double? deliveryCharges,
   }) {
     state = state.copyWith(
       customerName: name,
@@ -357,6 +363,7 @@ class CartNotifier extends Notifier<CartState> {
       deliveryAddress: address,
       customerPhone: phone,
       orderTaker: orderTaker,
+      customDeliveryCharges: deliveryCharges,
     );
   }
 
@@ -420,7 +427,7 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
       if (baseForTax < 0) baseForTax = 0;
 
       double tax = baseForTax * (settings.taxRate / 100);
-      double delivery = cart.orderType == "delivery" ? settings.deliveryCharges : 0.0;
+      double delivery = cart.orderType == "delivery" ? (cart.customDeliveryCharges ?? settings.deliveryCharges) : 0.0;
       double grandTotal = baseForTax + tax + delivery;
       double change = 0.0;
 
@@ -476,8 +483,8 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
           finalManualDiscount = existing.manualDiscount;
           finalManagerDiscount = existing.managerDiscount;
           finalTax = existing.tax;
-          finalDeliveryCharges = existing.deliveryCharges;
-          finalGrandTotal = existing.grandTotal;
+          finalDeliveryCharges = cart.orderType == "delivery" ? (cart.customDeliveryCharges ?? existing.deliveryCharges) : 0.0;
+          finalGrandTotal = baseForTax + finalTax + finalDeliveryCharges;
         } else if (existing.status == "Handover") {
           // Cashier is only allowed to edit discounts. Items, deals, and customer details remain same as existing order!
           finalItems = existing.items;
@@ -498,7 +505,7 @@ class CashierActionNotifier extends Notifier<AsyncValue<String>> {
           double baseForTax = finalSubtotal - finalDiscountAmount;
           if (baseForTax < 0) baseForTax = 0;
           finalTax = baseForTax * (settings.taxRate / 100);
-          finalDeliveryCharges = finalOrderType == "delivery" ? settings.deliveryCharges : 0.0;
+          finalDeliveryCharges = finalOrderType == "delivery" ? (cart.customDeliveryCharges ?? existing.deliveryCharges) : 0.0;
           finalGrandTotal = baseForTax + finalTax + finalDeliveryCharges;
         }
 

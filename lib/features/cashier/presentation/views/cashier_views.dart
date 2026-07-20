@@ -229,6 +229,7 @@ class _POSViewState extends ConsumerState<POSView> {
   final _tableController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _deliveryController = TextEditingController();
   String _orderType = "dine-in";
   String _orderTaker = "Customer";
   final _customerFormKey = GlobalKey<FormState>();
@@ -254,6 +255,9 @@ class _POSViewState extends ConsumerState<POSView> {
           _tableController.text = cart.tableNumber ?? '';
           _addressController.text = cart.deliveryAddress ?? '';
           _phoneController.text = cart.customerPhone ?? '';
+          final settings = ref.read(settingsStreamProvider).value;
+          final defaultDelivery = settings?.deliveryCharges ?? 0.0;
+          _deliveryController.text = (cart.customDeliveryCharges ?? defaultDelivery).toStringAsFixed(0);
           setState(() {
             _cartPanelMode = "customer";
           });
@@ -277,6 +281,7 @@ class _POSViewState extends ConsumerState<POSView> {
     _tableController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    _deliveryController.dispose();
     _manualController.dispose();
     super.dispose();
   }
@@ -289,6 +294,9 @@ class _POSViewState extends ConsumerState<POSView> {
     _tableController.text = cart.tableNumber ?? '';
     _addressController.text = cart.deliveryAddress ?? '';
     _phoneController.text = cart.customerPhone ?? '';
+    final settings = ref.read(settingsStreamProvider).value;
+    final defaultDelivery = settings?.deliveryCharges ?? 0.0;
+    _deliveryController.text = (cart.customDeliveryCharges ?? defaultDelivery).toStringAsFixed(0);
     setState(() {
       _cartPanelMode = "customer";
     });
@@ -296,6 +304,10 @@ class _POSViewState extends ConsumerState<POSView> {
 
   void _onProceedToDiscounts() {
     if (_customerFormKey.currentState!.validate()) {
+      double? customDelivery;
+      if (_orderType == "delivery") {
+        customDelivery = double.tryParse(_deliveryController.text.trim()) ?? 0.0;
+      }
       ref.read(cartProvider.notifier).updateCustomerDetails(
         name: _nameController.text.trim().isEmpty ? "Walk-in Customer" : _nameController.text.trim(),
         type: _orderType,
@@ -303,6 +315,7 @@ class _POSViewState extends ConsumerState<POSView> {
         address: _orderType == "delivery" ? _addressController.text.trim() : null,
         phone: (_orderType == "delivery" || _orderType == "takeaway") ? _phoneController.text.trim() : null,
         orderTaker: _orderTaker,
+        deliveryCharges: customDelivery,
       );
 
       final cart = ref.read(cartProvider);
@@ -1415,6 +1428,22 @@ class _POSViewState extends ConsumerState<POSView> {
                             return null;
                           },
                         ),
+                        const SizedBox(height: 12),
+                        CustomTextField(
+                          label: "Delivery Charges (Rs.) (Optional)",
+                          placeholder: "e.g., 50",
+                          controller: _deliveryController,
+                          prefixIcon: Icons.delivery_dining,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (val) {
+                            if (val != null && val.trim().isNotEmpty) {
+                              if (double.tryParse(val.trim()) == null || double.parse(val.trim()) < 0) {
+                                return "Enter a valid amount";
+                              }
+                            }
+                            return null;
+                          },
+                        ),
                       ],
                     ],
                   ),
@@ -1677,7 +1706,7 @@ class _POSViewState extends ConsumerState<POSView> {
                 if (baseForTax < 0) baseForTax = 0;
                 
                 double tax = baseForTax * (settings.taxRate / 100);
-                double delivery = cart.orderType == "delivery" ? settings.deliveryCharges : 0.0;
+                double delivery = cart.orderType == "delivery" ? (cart.customDeliveryCharges ?? settings.deliveryCharges) : 0.0;
                 double grandTotal = baseForTax + tax + delivery;
 
                 return Column(

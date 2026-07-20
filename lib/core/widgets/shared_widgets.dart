@@ -986,7 +986,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
       ''');
     }
 
-    final deliveryChargesHtml = order.deliveryCharges > 0
+    final deliveryChargesHtml = order.orderType == "delivery"
         ? '''
         <tr>
           <td style="padding: 2px 0;">Delivery Charges</td>
@@ -1541,7 +1541,7 @@ class ReceiptPreviewWidget extends StatelessWidget {
           _buildBillRow("Sub Total", "Rs. ${order.subtotal.toStringAsFixed(2)}"),
           _buildBillRow("Discount", "-Rs. ${order.discountAmount.toStringAsFixed(2)}"),
           _buildBillRow("Tax", "Rs. ${order.tax.toStringAsFixed(2)}"),
-          if (order.deliveryCharges > 0)
+          if (order.orderType == "delivery")
             _buildBillRow("Delivery Charges", "Rs. ${order.deliveryCharges.toStringAsFixed(2)}"),
           const SizedBox(height: 4),
           Container(
