@@ -1311,7 +1311,7 @@ class _POSViewState extends ConsumerState<POSView> {
                       const SizedBox(height: 8),
                       CustomTextField(
                         label: "Customer Name (Optional)",
-                        placeholder: "e.g., John Doe",
+                        placeholder: "e.g., Ali Hassan",
                         controller: _nameController,
                         prefixIcon: Icons.person_outline,
                       ),
