@@ -1,20 +1,25 @@
-# 🍔 Boss Food Corner — POS System
+# Boss Food Corner — POS System
 
 A **full-featured, real-time Point of Sale (POS) system** built with Flutter Web and Firebase. Designed for restaurant operations with distinct role-based dashboards for the **Manager**, **Cashier**, and **Kitchen/Expediter** staff.
 
-> Developed by **Voryent Solution** — 0329 7600120
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Dart-3.x-00B4AB?logo=dart" alt="Dart" />
+  <img src="https://img.shields.io/badge/Firebase-Enabled-FFCA28?logo=firebase" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Riverpod-3.x-1C5BD2?logo=flutter" alt="Riverpod" />
+</p>
 
 ---
 
-## 📸 Overview
+## Overview
 
 The Boss Food Corner POS system streamlines restaurant operations from order placement to kitchen fulfillment and daily financial closing. It supports real-time multi-device synchronization, thermal receipt printing, and comprehensive sales analytics — all running in the browser.
 
 ---
 
-## ✨ Features
+## Features
 
-### 👔 Manager Dashboard
+### Manager Dashboard
 | Feature | Description |
 |---|---|
 | **Menu Management** | Create and manage categories, menu items with prices and images |
@@ -27,7 +32,7 @@ The Boss Food Corner POS system streamlines restaurant operations from order pla
 | **POS Settings** | Set cashier report password, release daily closings |
 | **Daily Closing Release** | Manager authority to release a cashier's submitted closing for correction |
 
-### 🧾 Cashier Dashboard
+### Cashier Dashboard
 | Feature | Description |
 |---|---|
 | **Order Placement** | Browse categories, add items/deals, apply discounts to cart |
@@ -40,7 +45,7 @@ The Boss Food Corner POS system streamlines restaurant operations from order pla
 | **Daily Closing** | Submit end-of-day cash/online/card totals; print daily closing receipt |
 | **Reports (Password Protected)** | View shift sales, revenue, and order breakdowns (optional password) |
 
-### 🍳 Expediter / Kitchen Dashboard
+### Expediter / Kitchen Dashboard
 | Feature | Description |
 |---|---|
 | **Pending Queue (Grid View)** | Incoming orders displayed as kitchen tickets in a responsive grid |
@@ -49,13 +54,13 @@ The Boss Food Corner POS system streamlines restaurant operations from order pla
 | **Completed Tab** | Full order history for the shift |
 | **Real-time Sync** | All status changes instantly reflected across all logged-in devices |
 
-### 🖨️ Receipt Printing
+### Receipt Printing
 - **Order Receipt**: Logo, store address/phone, order details, tax (hidden if 0%), discount (hidden if not applied), Grand Total, Cash received, Change returned.
 - **Daily Closing Receipt**: Logo, store info, Total Punch Orders, Total Confirmed Orders, Cancelled Orders, Total Today Revenue, Cash/Online/Card breakdown, Total Received Amount, developer signature.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 The project follows a **feature-first clean architecture** with Riverpod for state management:
 
@@ -81,7 +86,7 @@ lib/
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Technology | Purpose |
 |---|---|
@@ -97,7 +102,7 @@ lib/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) `>=3.10.1`
@@ -124,7 +129,7 @@ A **"Demo Mode"** banner will appear. All features work with simulated data.
 
 ---
 
-## 🔥 Firebase Setup (Production Mode)
+## Firebase Setup (Production Mode)
 
 ### Step 1 — Create a Firebase Project
 1. Go to [Firebase Console](https://console.firebase.google.com/) → **Add Project**.
@@ -189,7 +194,7 @@ Output is in `build/web/`. Deploy to any static host (Firebase Hosting, Vercel, 
 
 ---
 
-## 👤 Role-Based Access
+## Role-Based Access
 
 | Role | Access |
 |---|---|
@@ -199,7 +204,7 @@ Output is in `build/web/`. Deploy to any static host (Firebase Hosting, Vercel, 
 
 ---
 
-## 📁 Collections (Firestore)
+## Collections (Firestore)
 
 | Collection | Description |
 |---|---|
@@ -218,7 +223,7 @@ Output is in `build/web/`. Deploy to any static host (Firebase Hosting, Vercel, 
 
 ---
 
-## 🔐 Daily Closing Logic
+## Daily Closing Logic
 - The **logical business day** resets at **5:00 AM daily**.
 - Cashiers submit end-of-day totals for Cash, Online Banking, and Card payments.
 - Once submitted, the closing **locks** — cashier sees "View Closing" instead of "Add Daily Closing".
@@ -226,11 +231,15 @@ Output is in `build/web/`. Deploy to any static host (Firebase Hosting, Vercel, 
 
 ---
 
-## 📄 License
+## License
 
 This project is proprietary software developed for **Boss Food Corner**, Okara.  
 POS system developed by **Voryent Solution** — 0329 7600120.
 
 ---
 
-> Built with ❤️ using Flutter & Firebase
+
+## Demo Video
+
+
+
