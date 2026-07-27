@@ -243,3 +243,7 @@ POS system developed by **Voryent Solution** — 0329 7600120.
 
 
 
+https://github.com/user-attachments/assets/56b660d6-ef33-41cd-a077-721510eedca5
+
+
+
