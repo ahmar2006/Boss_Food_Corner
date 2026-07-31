@@ -359,6 +359,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   final _phoneController = TextEditingController();
   final _taxController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _accountController = TextEditingController();
   double _deliveryCharges = 0.0;
 
   @override
@@ -372,6 +373,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _phoneController.dispose();
     _taxController.dispose();
     _passwordController.dispose();
+    _accountController.dispose();
     super.dispose();
   }
 
@@ -381,6 +383,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _deliveryCharges = settings.deliveryCharges;
     _taxController.text = settings.taxRate.toString();
     _passwordController.text = settings.cashierReportPassword;
+    _accountController.text = settings.accountDetails;
   }
 
   void _showError(String err) {
@@ -399,6 +402,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       final phone = _phoneController.text.trim();
       final tax = double.parse(_taxController.text);
       final pass = _passwordController.text.trim();
+      final account = _accountController.text.trim();
 
       final settings = SettingsModel(
         id: "default",
@@ -407,6 +411,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         taxRate: tax,
         updatedAt: DateTime.now(),
         cashierReportPassword: pass,
+        accountDetails: account,
       );
 
       try {
@@ -482,6 +487,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         placeholder: "Enter password (or leave empty to disable)",
                         controller: _passwordController,
                         prefixIcon: Icons.lock_outline,
+                        validator: (val) => null,
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        label: "Account Details (e.g. Jazzcash 03001234567)",
+                        placeholder: "e.g. Jazzcash 000000000000000",
+                        controller: _accountController,
+                        prefixIcon: Icons.account_balance_wallet_outlined,
                         validator: (val) => null,
                       ),
                       const SizedBox(height: 24),

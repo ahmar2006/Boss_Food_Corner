@@ -736,6 +736,7 @@ class SettingsModel {
   final double taxRate;
   final DateTime updatedAt;
   final String cashierReportPassword;
+  final String accountDetails;
 
   SettingsModel({
     required this.id,
@@ -744,6 +745,7 @@ class SettingsModel {
     required this.taxRate,
     required this.updatedAt,
     this.cashierReportPassword = '',
+    this.accountDetails = '',
   });
 
   SettingsModel copyWith({
@@ -753,6 +755,7 @@ class SettingsModel {
     double? taxRate,
     DateTime? updatedAt,
     String? cashierReportPassword,
+    String? accountDetails,
   }) {
     return SettingsModel(
       id: id ?? this.id,
@@ -761,6 +764,7 @@ class SettingsModel {
       taxRate: taxRate ?? this.taxRate,
       updatedAt: updatedAt ?? this.updatedAt,
       cashierReportPassword: cashierReportPassword ?? this.cashierReportPassword,
+      accountDetails: accountDetails ?? this.accountDetails,
     );
   }
 
@@ -772,6 +776,7 @@ class SettingsModel {
       'taxRate': taxRate,
       'updatedAt': updatedAt.toUtc().toIso8601String(),
       'cashierReportPassword': cashierReportPassword,
+      'accountDetails': accountDetails,
     };
   }
 
@@ -783,6 +788,7 @@ class SettingsModel {
       taxRate: _parseDouble(map['taxRate']),
       updatedAt: _parseDateTime(map['updatedAt']),
       cashierReportPassword: map['cashierReportPassword'] ?? '',
+      accountDetails: map['accountDetails'] ?? '',
     );
   }
 }

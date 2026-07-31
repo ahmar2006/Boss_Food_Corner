@@ -1790,6 +1790,7 @@ class _POSViewState extends ConsumerState<POSView> {
 
   Widget _buildReceiptPrinterPanel(CartState cart) {
     final menuItems = ref.watch(menuItemsStreamProvider).value ?? [];
+    final settings = ref.watch(settingsStreamProvider).value;
     final orderAsync = _placedOrderDocId != null
         ? ref.watch(singleOrderProvider(_placedOrderDocId!))
         : const AsyncValue<OrderModel?>.data(null);
@@ -1839,7 +1840,7 @@ class _POSViewState extends ConsumerState<POSView> {
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.zero,
                     ),
-                    child: ReceiptPreviewWidget(order: order),
+                    child: ReceiptPreviewWidget(order: order, accountDetails: settings?.accountDetails ?? ''),
                   ),
                 ),
               ),
@@ -1848,7 +1849,7 @@ class _POSViewState extends ConsumerState<POSView> {
             CustomButton(
               text: "Print Receipt",
               icon: Icons.print,
-              onPressed: () => triggerWebPrint(context, order!),
+              onPressed: () => triggerWebPrint(context, order!, settings),
             ),
             const SizedBox(height: 8),
             CustomButton(
@@ -1898,6 +1899,7 @@ class ReceiptView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orderAsync = ref.watch(singleOrderProvider(orderId));
+    final settings = ref.watch(settingsStreamProvider).value;
     final OrderModel? order = orderAsync.value;
 
     if (order == null) {
@@ -1935,7 +1937,7 @@ class ReceiptView extends ConsumerWidget {
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.zero,
                   ),
-                  child: ReceiptPreviewWidget(order: order),
+                  child: ReceiptPreviewWidget(order: order, accountDetails: settings?.accountDetails ?? ''),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -1944,7 +1946,7 @@ class ReceiptView extends ConsumerWidget {
                       child: CustomButton(
                         text: "Print",
                         icon: Icons.print,
-                        onPressed: () => triggerWebPrint(context, order!),
+                        onPressed: () => triggerWebPrint(context, order!, settings),
                       ),
                     ),
                     const SizedBox(width: 12),

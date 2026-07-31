@@ -13,6 +13,7 @@ import '../models/models.dart';
 // so the browser never makes a network request when printing.
 // ---------------------------------------------------------------------------
 String? _cachedLogoBase64;
+String? _cachedBarcodeBase64;
 
 /// Call this once in main() after Firebase init to pre-load the receipt logo.
 Future<void> preloadReceiptLogo() async {
@@ -22,6 +23,17 @@ Future<void> preloadReceiptLogo() async {
     _cachedLogoBase64 = 'data:image/png;base64,${base64Encode(bytes)}';
   } catch (e) {
     debugPrint('preloadReceiptLogo: failed to cache logo — $e');
+  }
+}
+
+/// Pre-load barcode into memory as base64 so print is instant.
+Future<void> preloadBarcode() async {
+  try {
+    final ByteData data = await rootBundle.load('assets/barcode.jpeg');
+    final Uint8List bytes = data.buffer.asUint8List();
+    _cachedBarcodeBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+  } catch (e) {
+    debugPrint('preloadBarcode: failed to cache barcode — $e');
   }
 }
 
@@ -922,10 +934,12 @@ class SummaryCard extends StatelessWidget {
 
 // Global Browser Utilities for Printing & Beep alert
 
-void triggerWebPrint(BuildContext context, OrderModel order) {
+void triggerWebPrint(BuildContext context, OrderModel order, SettingsModel? settings) {
   try {
     // Use the cached inline base64 logo so no image fetch is needed at print time
     final logoSrc = _cachedLogoBase64 ?? 'assets/receipt_logo.png';
+    final barcodeSrc = _cachedBarcodeBase64 ?? 'assets/barcode.jpeg';
+    final accountDetails = settings?.accountDetails ?? '';
     final orderTokenId = order.tokenId ?? 'N/A';
     final orderId = order.orderId;
     final orderStatus = "${order.status.toUpperCase()} / ${order.isPaid ? 'PAID' : 'UNPAID'}";
@@ -1104,31 +1118,42 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
            <div class="divider"></div>
            
            <div style="font-size: 9pt;">
-             <div style="display: flex; justify-content: space-between;">
-               <span>Date: $orderDate</span>
-               <span>Time: $orderTime</span>
-             </div>
-             <div style="margin-top: 2px;">Cashier: $cashierName</div>
-             <div style="margin-top: 2px;">Order Taker: $orderTaker</div>
-             $riderHtml
-           </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Date: $orderDate</span>
+                <span>Time: $orderTime</span>
+              </div>
+              <div style="flex: 1;">
+                  <div>Cashier: $cashierName</div>
+                  <div style="margin-top: 2px;">Order Taker: $orderTaker</div>
+                  $riderHtml
+                </div>
+              <div style="margin-top: 4px; font-weight: bold;">
+                Account: $accountDetails
+              </div>
+            </div>
            
            <div class="divider"></div>
            
            <div class="center bold" style="font-size: 9pt; letter-spacing: 0.5px;">Customer Details</div>
            
            <div class="divider"></div>
-           
-           <div style="line-height: 1.4; font-size: 9pt;">
-             <div>Type: $orderType</div>
-             <div>Customer: $customerName</div>
-             $tableNumberHtml
-             $phoneHtml
-             $addressHtml
-           </div>
-           
-           <div class="divider"></div>
-           
+
+<table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+  <tr>
+    <td style="vertical-align: top; line-height: 1.4; font-size: 9pt;">
+      <div style="white-space: nowrap;">Type: $orderType</div>
+      <div style="white-space: nowrap;">Customer: $customerName</div>
+      $tableNumberHtml
+      $phoneHtml
+      $addressHtml
+    </td>
+    <td style="vertical-align: top; text-align: right; width: 22mm;">
+      <img src="$barcodeSrc" style="width: 20mm; height: 18mm; display: block;" alt="Barcode">
+    </td>
+  </tr>
+</table>
+
+<div class="divider"></div>
            <div class="center bold" style="font-size: 9pt; letter-spacing: 0.5px;">Order Details</div>
            
            <div class="divider"></div>
@@ -1173,6 +1198,7 @@ void triggerWebPrint(BuildContext context, OrderModel order) {
           
           <div class="center bold" style="font-size: 7.5pt; margin-top: 2px;">POS System Developed By</div>
           <div class="center" style="font-size: 7.5pt; font-weight: bold;">Voryent Solutions  0329 7600120</div>
+          <div class="center" style="font-size: 7.5pt; font-weight: bold;">voryentsolutions.com</div>
           
           <script>
             setTimeout(function() {
@@ -1385,7 +1411,8 @@ void triggerBeepNotification() {
 
 class ReceiptPreviewWidget extends StatelessWidget {
   final OrderModel order;
-  const ReceiptPreviewWidget({super.key, required this.order});
+  final String accountDetails;
+  const ReceiptPreviewWidget({super.key, required this.order, this.accountDetails = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -1457,13 +1484,16 @@ class ReceiptPreviewWidget extends StatelessWidget {
               Text("Time: $orderTime", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),
             ],
           ),
-          const SizedBox(height: 4),
           Text("Cashier: $cashierName", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),
           const SizedBox(height: 2),
           Text("Order Taker: ${order.orderTaker ?? 'Customer'}", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),
           if (order.orderType.toLowerCase() == 'delivery' && order.riderName != null && order.riderName!.trim().isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text("Rider: ${order.riderName}", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),
+            Text("Rider: ${order.riderName}", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, color: Colors.black)),          
+          ],
+          if (accountDetails.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text("Account: $accountDetails", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
           ],
           const Divider(color: Colors.black, thickness: 1),
           // Customer Detail Header
@@ -1559,13 +1589,15 @@ class ReceiptPreviewWidget extends StatelessWidget {
                 Text("Rs. ${order.grandTotal.toStringAsFixed(2)}", style: const TextStyle(fontFamily: 'Times New Roman', fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black)),
               ],
             ),
-          ),
+          ),          
           const Text("Thank You!", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
           const Text("Please Visit Again", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
+          
           const Divider(color: Colors.black, thickness: 1),
           const SizedBox(height: 4),
           const Text("POS System Developed By", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black)),
           const Text("Voryent Solutions  0329 7600120", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black)),
+          const Text("voryentsolutions.com", textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Times New Roman', fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black)),
         ],
       ),
     ),);

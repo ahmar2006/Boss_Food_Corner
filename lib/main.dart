@@ -28,8 +28,9 @@ void main() async {
     debugPrint("Firebase connection failed: $e.");
   }
 
-  // Pre-load receipt logo into memory as base64 so print is instant
+  // Pre-load receipt logo and barcode into memory as base64 so print is instant
   await preloadReceiptLogo();
+  await preloadBarcode();
 
   // Override default Flutter error widget to show a beautiful fallback screen instead of the red screen of death
   ErrorWidget.builder = (FlutterErrorDetails details) {

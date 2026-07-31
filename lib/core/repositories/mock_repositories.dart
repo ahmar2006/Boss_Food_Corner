@@ -189,6 +189,7 @@ class MockDatabase {
     taxRate: 5.0,
     updatedAt: DateTime.now(),
     cashierReportPassword: "",
+    accountDetails: "",
   );
 
   static int orderIdCounter = 42; // Starts from 42 as per receipt spec example

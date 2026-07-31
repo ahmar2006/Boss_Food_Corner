@@ -929,6 +929,7 @@ class FirebaseSettingsRepository implements SettingsRepository {
         taxRate: 5.0,
         updatedAt: DateTime.now(),
         cashierReportPassword: '',
+        accountDetails: '',
       );
     }
     return SettingsModel.fromMap(doc.data()!, doc.id);
@@ -945,6 +946,7 @@ class FirebaseSettingsRepository implements SettingsRepository {
           taxRate: 5.0,
           updatedAt: DateTime.now(),
           cashierReportPassword: '',
+          accountDetails: '',
         );
       }
       return SettingsModel.fromMap(doc.data()!, doc.id);
